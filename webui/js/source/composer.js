@@ -1,6 +1,12 @@
 let mua_headers = {}; // communication between compose_email and compose_send
 
 function compose_send() {
+    let send_button = document.getElementById('composer_send_btn');
+    if (send_button) {
+        send_button.disabled = true;
+        send_button.style.opacity = '0.5';
+        send_button.innerText = 'Sending...';
+    }
     let content = [];
     for (let k in mua_headers) {
         content.push(k + "=" + encodeURIComponent(mua_headers[k]));
@@ -25,6 +31,11 @@ function compose_send() {
             let response = JSON.parse(request.responseText)
             if (response.error) {
                 modal("Message dispatch failed!", response.error, "error");
+                if (send_button) {
+                    send_button.disabled = false;
+                    send_button.style.opacity = '1';
+                    send_button.innerText = 'Send reply';
+                }
             } else {
                 modal("Message dispatched!", "Your email has been sent. Depending on moderation rules, it may take a while before it shows up in the archives.", "help");
             }
@@ -142,7 +153,8 @@ function compose_email(replyto, list) {
     form.push(body);
 
     let btn = new HTML('button', {
-        onclick: 'compose_send();'
+        onclick: 'compose_send();',
+        id: 'composer_send_btn'
     }, "Send reply");
     form.push(btn);
     form.push("   ");
