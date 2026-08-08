@@ -1306,6 +1306,45 @@ a.disabled {
   color: #FFF !important;
 }
 
+.permalink_dropdown {
+  display: inline-block;
+  position: relative;
+}
+
+.permalink_menu {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.permalink_menu.show {
+  display: block;
+}
+
+.permalink_menu_item {
+  display: block;
+  padding: 6px 12px;
+  color: #333;
+  text-decoration: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.permalink_menu_item:hover {
+  background: #f0f0f0;
+  color: #333;
+  text-decoration: none;
+}
+
 .toolbar_button_source {
   background: #c93d24;
   color: #FFF !important;
