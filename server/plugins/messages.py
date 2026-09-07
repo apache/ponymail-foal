@@ -412,7 +412,7 @@ async def query_batch(
     else:
         es_query["_source"] = { "excludes": ["body"] }
     # Upvote scanning is opt-in per query, and only runs if terms are configured
-    term_regex = social_term_regex(tuple(plugins.configuration.ui.social_terms)) if social_stats else None
+    term_regex = social_term_regex(tuple(session.server.config.ui.social_terms)) if social_stats else None
     async for hits in session.database.scan(
             query=es_query,
             preserve_order=preserve_order
