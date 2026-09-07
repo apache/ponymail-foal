@@ -26,6 +26,7 @@ import base64
 import binascii
 import datetime
 import email.utils
+import functools
 import hashlib
 
 # Main imports
@@ -36,6 +37,7 @@ import typing
 import plugins.aaa
 import plugins.session
 import plugins.database
+import plugins.configuration
 
 PYPONY_RE_PREFIX = re.compile(r"^([a-zA-Z]+:\s*)+")  # Prefixes on subjects, such as Re: Fwd:, etc.
 DATABASE_NOT_CONNECTED = "Database not connected!"
@@ -47,6 +49,13 @@ mbox_cache_privacy: typing.Dict[str, bool] = {}
 
 # This is used to detect if the '...' truncation marker is to be added
 SHORT_BODY_MAX_LEN = 200  # This must be the same as Archiver.SHORT_BODY_MAXLEN
+
+# Social stats: the terms that count as an upvote are configurable (ui.social_terms
+# in ponymail.yaml, default ["+1"]). Terms may start or end with a non-word
+# character, as the default "+1" does, so whole-word matching cannot rely on \b;
+# these lookarounds reject a term glued to a word character, a plus or a dash
+# instead, so "+1" matches in "+1 from me" but not in "+10" or "++1".
+SOCIAL_TERM_RE = r"(?<![\w+-])(?:%s)(?![\w+-])"
 
 # Only these fields are returned by the API:
 # (keep this list sorted)
@@ -64,6 +73,7 @@ USED_UI_FIELDS = [
     "message-id",
     "mid",
     "private",
+    "social_upvotes",
     "subject",
 ]
 # The following fields are currently excluded:
@@ -333,17 +343,57 @@ async def get_source(session: plugins.session.SessionObject, permalink: str, raw
     return None
 
 
+@functools.lru_cache(maxsize=8)
+def social_term_regex(terms: typing.Tuple[str, ...]) -> typing.Optional[typing.Pattern]:
+    """Compiles the configured upvote terms into a single alternation regex, or
+    returns None if no terms are configured (feature disabled). The result is
+    cached, as the term list only changes when the server is reconfigured."""
+    if not terms:
+        return None
+    # Longest terms first, so the most specific alternative is tried first
+    alternation = "|".join(re.escape(term) for term in sorted(terms, key=len, reverse=True))
+    return re.compile(SOCIAL_TERM_RE % alternation, re.IGNORECASE)
+
+
+def social_upvotes(body: typing.Optional[str], term_regex: typing.Pattern) -> int:
+    """
+    Returns 1 if one of the configured upvote terms occurs as a whole word in an
+    email body, otherwise 0. Matches inside quoted text (a line whose first
+    non-blank character is '>') do not count, as they are someone else's words.
+    Most bodies hold no match at all, so the regex does the scanning and only
+    the (rare) matches are checked for quoting.
+    """
+    if not body:
+        return 0
+    for match in term_regex.finditer(body):
+        start = match.start()
+        # Back up to the start of the line the match is on, then skip past any
+        # indentation; a '>' at that point means we are inside quoted text.
+        offset = body.rfind("\n", 0, start) + 1
+        while offset < start and body[offset] in " \t":
+            offset += 1
+        if offset < start and body[offset] == ">":
+            continue
+        return 1
+    return 0
+
+
 async def query_batch(
-    session: plugins.session.SessionObject,
-    query_defuzzed: dict,
-    metadata_only: bool = False,
-    epoch_order: str = "desc",
-    source_fields: typing.Optional[typing.List[str]] = None
+        session: plugins.session.SessionObject,
+        query_defuzzed: dict,
+        metadata_only: bool = False,
+        epoch_order: str = "desc",
+        source_fields: typing.Optional[typing.List[str]] = None,
+        social_stats: bool = False
 ):
     """
     Advanced query and grab for stats.py
     Also called by mbox.py (using metadata_only=True)
     Yields batches of scan results, filtered to remove inaccessible mails
+    If social_stats is set, each doc gets a 'social_upvotes' key (see
+    social_upvotes()). The scan needs body text, so callers passing source_fields
+    must ask for 'body' (scans the entire email) or 'body_short' (limits the scan
+    to the teaser the archiver stored, SHORT_BODY_MAX_LEN+1 characters).
     """
     assert session.database, DATABASE_NOT_CONNECTED
     preserve_order = True if epoch_order == "asc" else False
@@ -361,9 +411,11 @@ async def query_batch(
         es_query["_source"] = temp
     else:
         es_query["_source"] = { "excludes": ["body"] }
+    # Upvote scanning is opt-in per query, and only runs if terms are configured
+    term_regex = social_term_regex(tuple(plugins.configuration.ui.social_terms)) if social_stats else None
     async for hits in session.database.scan(
-        query=es_query,
-        preserve_order=preserve_order
+            query=es_query,
+            preserve_order=preserve_order
     ):
         is_admin = session.credentials and session.credentials.admin
         docs = []
@@ -378,6 +430,9 @@ async def query_batch(
                 # Calculate gravatars if not present in _source
                 if not metadata_only and source_fields is None and "gravatar" not in doc:
                     doc["gravatar"] = gravatar(doc)
+                if term_regex is not None:
+                    # Scan the body as stored, before truncation below trims it
+                    doc["social_upvotes"] = social_upvotes(doc.get("body") or doc.get("body_short"), term_regex)
                 if not session.credentials:
                     doc = anonymize(doc)
                 if "body_short" in doc:
@@ -401,12 +456,13 @@ async def query_batch(
 
 
 async def query(
-    session: plugins.session.SessionObject,
-    query_defuzzed: dict,
-    query_limit: int,
-    metadata_only: bool = False,
-    epoch_order: str = "desc",
-    source_fields: typing.Optional[typing.List[str]] = None
+        session: plugins.session.SessionObject,
+        query_defuzzed: dict,
+        query_limit: int,
+        metadata_only: bool = False,
+        epoch_order: str = "desc",
+        source_fields: typing.Optional[typing.List[str]] = None,
+        social_stats: bool = False
 ) -> typing.List[dict]:
     """
     Advanced query and grab for stats.py
@@ -415,11 +471,12 @@ async def query(
     docs = []
     hits = 0
     async for batch in query_batch(
-        session,
-        query_defuzzed,
-        metadata_only=metadata_only,
-        epoch_order=epoch_order,
-        source_fields=source_fields
+            session,
+            query_defuzzed,
+            metadata_only=metadata_only,
+            epoch_order=epoch_order,
+            source_fields=source_fields,
+            social_stats=social_stats
     ):
         for doc in batch:
             docs.append(doc)
