@@ -60,6 +60,7 @@ Setup the ElasticSearch database
 ================================
 
 The following step only needs to be done once.
+(The output is cached under elastic/)
 The container must already be running.
 
 Open a new terminal session and start a shell in the container:
