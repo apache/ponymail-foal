@@ -124,7 +124,8 @@ async def get_session(
 
             # Do we need to update the timestamp in ES?
             if (now - session.last_accessed) > FOAL_SAVE_SESSION_INTERVAL:
-                session.last_accessed = now
+                # Update the cached object too, or this fires on every request past the interval
+                x_session.last_accessed = session.last_accessed = now
                 await save_session(session)
 
             return session
