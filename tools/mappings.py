@@ -33,7 +33,7 @@ mapping_file = yaml.safe_load(open("mappings.yaml", "r"))
 
 elastic = Elastic()
 major = elastic.engineMajor()
-if major != 7:
+if major != 7 and elastic.engineDistribution() != "opensearch":
     print("This script requires ElasticSearch 7 API in order to work!")
     sys.exit(-1)
 
