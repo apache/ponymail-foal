@@ -204,7 +204,8 @@ if args.mailserver:
 if args.mldom:
     mldom = args.mldom
 if args.wc:
-    wc = args.wc
+    wc = "y"
+    wce = True
 if args.nwc:
     wc = "n"
     wce = False
