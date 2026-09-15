@@ -38,6 +38,7 @@ async def process(
     # must provide list and domain
     xlist = indata.get("list", None)
     xdomain = indata.get("domain", None)
+    social = indata.get("social", None) == "yes"
     if not xlist or not xdomain:
         return aiohttp.web.Response(headers={"content-type": "application/json",}, text='{}')
 
@@ -66,7 +67,7 @@ async def process(
         query_since = query_defuzzed.copy()
         query_since['must'].append({"range" : { "epoch": { "gt": epoch}}})
         results = await plugins.messages.query(
-            session, query_since, query_limit=1, source_fields=[] # don't need any fields
+            session, query_since, query_limit=1, social_stats=social, source_fields=[] # don't need any fields
         )
         if len(results) == 0:
             return {"changed" : False}
@@ -84,7 +85,11 @@ async def process(
         source_fields = ['epoch']
 
     results = await plugins.messages.query(
-        session, query_defuzzed, query_limit=server.config.database.max_hits, source_fields=source_fields
+        session,
+        query_defuzzed,
+        query_limit=server.config.database.max_hits,
+        source_fields=source_fields,
+        social_stats=social,
     )
 
     wordcloud = None
