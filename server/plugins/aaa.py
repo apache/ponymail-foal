@@ -32,9 +32,47 @@ def can_access_email(session: plugins.session.SessionObject, email: dict) -> boo
     # If user can access the list, they can read the email
     return can_access_list(session, email.get("list_raw", None))
 
-def can_access_list(session: plugins.session.SessionObject, _listid: Optional[str]) -> bool:
+def can_access_list(session: plugins.session.SessionObject, listid: Optional[str]) -> bool:
     """Determine if a list can be accessed by the current user"""
-    # If logged in via a known oauth, we assume access for now...TO BE CHANGED
-    if session.credentials and session.credentials.authoritative:
-        return True
-    return False
+    # Being authoritative (logged in via a configured OAuth domain) is REQUIRED
+    # but NOT sufficient: a user may only read a private list they are actually
+    # authorized for. Anything else fails closed.
+    if not (session.credentials and session.credentials.authoritative):
+        return False
+    if not listid:
+        return False
+    return is_list_member(session, listid)
+
+
+def is_list_member(session: plugins.session.SessionObject, listid: str) -> bool:
+    """Determine whether the current user is authorized for THIS specific private list.
+
+    Wire _list_acl() to the deployment's source of truth (a per-list
+    owner/moderator/subscriber roster, or an explicit config ACL). Until a
+    membership model exists, only globally-configured admins are granted, and
+    everyone else is denied. Never grant a private list to every authoritative
+    user again.
+    """
+    user = getattr(session.credentials, "email", None) or getattr(
+        session.credentials, "uid", None
+    )
+    if not user:
+        return False
+    acl = _list_acl(listid)
+    if acl is not None:
+        return user in acl
+    try:
+        admins = set(getattr(server.config, "admins", None) or [])
+    except NameError:
+        admins = set()
+    return user in admins
+
+
+def _list_acl(listid: str):
+    """Return the set of identities authorized for listid, or None if unknown.
+
+    TODO(ponymail): wire this to the real per-list membership / subscriber /
+    moderator source. Returning None (the default) makes is_list_member() fall
+    back to the admin-only check above, which is safe (fail closed).
+    """
+    return None
