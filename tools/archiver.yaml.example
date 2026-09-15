@@ -44,3 +44,11 @@ debug:
     #cropout:               string to crop from list-id
     # e.g. Strip out incubator except at top level
     # cropout:                (\w+\.\w+)\.incubator\.apache\.org \1.apache.org
+
+list-id:
+    # allow:                list of lower case strings that if found in the list-id do not get replaced by our default
+    #  e.g.
+    #  allow:                 apache.org,yahoogroups.com
+    # ignore:               list of lower case strings that if found in the list-id we ignore (no replacement, no message)
+    #  e.g.
+    #  ignore:                xt.local,mcsv.net
