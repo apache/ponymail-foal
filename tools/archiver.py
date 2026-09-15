@@ -413,6 +413,7 @@ class Archiver(object):  # N.B. Also used by import-mbox.py
         """
         body = None
         first_html = None
+        last_random = None
         for part in msg.walk():
             # can be called from importer
             if self.verbose:
@@ -432,12 +433,22 @@ class Archiver(object):  # N.B. Also used by import-mbox.py
                     and part.get_content_type() == "text/html"
                 ):
                     first_html = Body(part)
+                elif (
+                    body is None
+                ):
+                    last_random = Body(part)
             except Exception as err:
                 entry = sys.exc_info()[-1]
                 if entry: # avoid mypy complaint
                     print('Error on line {}:'.format(entry.tb_lineno), type(err).__name__, err)
                 else: # Should not happen, but just in case
                     print('Failed to create Body(part):',type(err).__name__, err)
+
+
+        if last_random and not first_html and body is None:
+            if bool(config.get("debug","allow_nontext_body", False)):
+                print("No text or html body found, using what we have")
+                body = last_random
 
         # this requires a GPL lib, user will have to install it themselves
         if first_html and (
