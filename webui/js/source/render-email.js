@@ -14,6 +14,70 @@ function get_rcpts(addresses) {
     return list_of_emails;
 }
 
+// Build a permalink button with a dropdown for "open" and "copy link"
+function make_permalink_dropdown(mid) {
+    let permalink = new URL('thread/%s'.format(mid), window.location.href).href;
+
+    let wrapper = new HTML('div', {
+        class: 'permalink_dropdown'
+    });
+
+    let button = new HTML('button', {
+        title: "Permanent link to this email",
+        class: 'btn toolbar_btn toolbar_button_link',
+        onclick: 'permalink_toggle(this);'
+    }, new HTML('span', {
+        class: 'glyphicon glyphicon-link'
+    }, ' '));
+    wrapper.inject(button);
+
+    let menu = new HTML('div', {
+        class: 'permalink_menu'
+    });
+    let open_link = new HTML('a', {
+        href: permalink,
+        target: '_blank',
+        class: 'permalink_menu_item'
+    }, 'Open in new tab');
+    let copy_link = new HTML('a', {
+        href: 'javascript:void(0);',
+        class: 'permalink_menu_item',
+        onclick: "permalink_copy(this, '%s');".format(permalink.replace(/'/g, "\\'"))
+    }, 'Copy link');
+    menu.inject([open_link, copy_link]);
+    wrapper.inject(menu);
+
+    return wrapper;
+}
+
+function permalink_toggle(btn) {
+    let menu = btn.parentNode.querySelector('.permalink_menu');
+    // Close any other open permalink menus first
+    document.querySelectorAll('.permalink_menu.show').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+    });
+    menu.classList.toggle('show');
+    // If we just opened it, add a one-time click-outside listener to close
+    if (menu.classList.contains('show')) {
+        setTimeout(() => {
+            document.addEventListener('click', function _dismiss(e) {
+                if (!menu.contains(e.target) && e.target !== btn) {
+                    menu.classList.remove('show');
+                    document.removeEventListener('click', _dismiss);
+                }
+            });
+        }, 0);
+    }
+}
+
+function permalink_copy(el, url) {
+    navigator.clipboard.writeText(url).then(() => {
+        el.textContent = 'Copied!';
+        setTimeout(() => { el.textContent = 'Copy link'; }, 1500);
+    });
+    el.closest('.permalink_menu').classList.remove('show');
+}
+
 async function render_email(state, json) {
     let div = state.div;
     G_full_emails[json.mid] = json; // Save for composer if replying later...
@@ -175,14 +239,7 @@ async function render_email(state, json) {
     toolbar.inject(replybutton);
 
     // permalink button
-    let linkbutton = new HTML('a', {
-        href: 'thread/%s'.format(json.mid),
-        target: '_blank',
-        title: "Permanent link to this email",
-        class: 'btn toolbar_btn toolbar_button_link'
-    }, new HTML('span', {
-        class: 'glyphicon glyphicon-link'
-    }, ' '));
+    let linkbutton = make_permalink_dropdown(json.mid);
     toolbar.inject(linkbutton);
 
     // Source-view button
@@ -306,14 +363,7 @@ async function render_email_chatty(state, json) {
     toolbar.inject(replybutton);
 
     // permalink button
-    let linkbutton = new HTML('a', {
-        href: 'thread/%s'.format(json.mid),
-        title: "Permanent link to this email",
-        target: '_blank',
-        class: 'btn toolbar_btn toolbar_button_link'
-    }, new HTML('span', {
-        class: 'glyphicon glyphicon-link'
-    }, ' '));
+    let linkbutton = make_permalink_dropdown(json.mid);
     toolbar.inject(linkbutton);
 
     // Source-view button
