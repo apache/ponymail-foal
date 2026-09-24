@@ -150,6 +150,13 @@ async function async_snap(error) {
         }
     }
     modal("An error occured", "An error code %u occured while trying to fetch %s:\n%s".format(error.status, error.url, msg), "error");
+    if (error.status === 404) {
+        let text = document.getElementById('modal_text');
+        text.inject(new HTML('br'));
+        text.inject(new HTML('a', {
+            href: 'oauth.html'
+        }, "Log in"));
+    }
 }
 
 
