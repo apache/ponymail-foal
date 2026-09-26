@@ -37,6 +37,7 @@ The formal OpenAPI 3.0 specification is available at
   - [compose.json — Send an email](#composejson)
   - [preferences.json — User preferences and list overview](#preferencesjson)
   - [mgmt.json — Administrative operations](#mgmtjson)
+  - [token.json — Short-term session tokens](#tokenjson)
   - [pminfo.json — Server activity info](#pminfojson)
   - [gravatar.json — Avatar image proxy](#gravatarjson)
   - [plain.json — Plain HTML for search engines](#plainjson)
@@ -53,6 +54,19 @@ Foal uses cookie-based sessions via OAuth. The session cookie is named
 `ponymail`. Most read endpoints work without authentication for public
 lists. Private list access and write operations (compose, management)
 require an authenticated session via an authoritative OAuth provider.
+
+When `tokens.enabled` is set in `ponymail.yaml`, a logged-in user can also
+mint a short-term **session token** for an external client (see
+[token.json](#tokenjson)). Clients send it as:
+
+```
+Authorization: Bearer pmt_...
+```
+
+A request with a `Bearer` token is authenticated by the token alone; any
+cookie sent with it is ignored. Tokens carry the read access of the session
+that created them and die with it. They cannot be used for `compose.json`,
+`mgmt.json` or to create further tokens.
 
 ---
 
@@ -320,6 +334,75 @@ POST /api/preferences.json
 
 ---
 
+### token.json
+
+**Create, list and revoke short-term session tokens.** Only available when
+`tokens.enabled` is set in `ponymail.yaml`.
+
+```
+POST /api/token.json
+```
+
+#### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `action` | string | no | `create` (default), `info`, `list` or `revoke` |
+| `client` | string | no | Name of the client the token is for; shown to the user (`create`) |
+| `ttl` | integer | no | Requested lifetime in seconds, capped at `tokens.max_ttl` (`create`) |
+| `redirect_uri` | string | no | Loopback URL the web UI hands the token to (`create`, see below) |
+| `id` | string | no | Token id to revoke (`revoke`, browser session only) |
+| `all` | boolean | no | Revoke every token of the browser session (`revoke`) |
+
+`info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "max_ttl": 86400}`.
+`create` and `list` need a logged-in **browser session** (not a token) and a
+POST; requests with a foreign `Origin` header are refused. `revoke` sent with
+a `Bearer` token revokes that token.
+
+#### Response (`create`)
+
+```json
+{
+  "okay": true,
+  "token": "pmt_3q2...",
+  "id": "a1b2c3d4e5f6",
+  "client": "ponymail-mcp",
+  "created": 1790000000,
+  "expires": 1790003600,
+  "ttl": 3600
+}
+```
+
+The raw token is returned once and never again. Errors are returned as
+`{"okay": false, "error": "<code>", "message": "..."}` with codes
+`tokens_disabled`, `login_required`, `token_not_allowed`, `cross_origin`,
+`method_not_allowed`, `invalid_redirect_uri` and `invalid_ttl`.
+
+#### Browser hand-off (`webui/token.html`)
+
+A local client that cannot see the browser's cookie obtains a token with
+the user's explicit approval, in the style of RFC 8252 loopback redirects:
+
+1. The client listens on a loopback port and opens
+   `https://<host>/token.html?client=<name>&redirect_uri=http://127.0.0.1:<port>/<path>&state=<random>`.
+2. The page shows who is logged in, which client is asking and for how
+   long, and asks the user to **Approve** or **Deny** (logging in first if
+   needed).
+3. On approval it calls `token.json` and hands the result to `redirect_uri`
+   with a form POST of `token`, `state` and `expires`. On denial it posts
+   `error=access_denied` and `state`.
+4. The client checks that `state` matches the value it generated.
+
+`redirect_uri` must be `http(s)` on `127.0.0.1` or `[::1]` (not
+`localhost`, per RFC 8252 section 8.3), with an explicit port and no
+credentials or fragment; the server enforces this. Without a `redirect_uri` the page shows the token for the user to copy.
+
+A token-authenticated `preferences.json` response includes
+`login.token` (`id`, `client`, `created`, `expires`), and `logout=true` sent
+with a token revokes only that token.
+
+---
+
 ### mgmt.json
 
 **Administrative endpoint for email management (GDPR operations).**
@@ -461,6 +544,7 @@ with the following notable differences:
 | `find_parent` | New parameter on `thread.json` to navigate to thread root |
 | `versions` in preferences | New — shows Foal, server, and OpenSearch version info |
 | `mgmt.json` | New — admin/GDPR management endpoint (not in legacy PM) |
+| `token.json` | New — short-term session tokens for external clients |
 | `gravatar.json` | New — caching proxy (legacy embedded gravatar handling differently) |
 | `plain.json` | New — search engine indexing support |
 

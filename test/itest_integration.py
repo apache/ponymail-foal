@@ -465,3 +465,112 @@ def test_mgmt_edit():
 def test_mgmt_log_after():
     admin_cookies = get_cookies('admin')
     check_auditlog_count(5, admin_cookies)
+
+# Short-term session tokens (requires `tokens: enabled: true` in ponymail.yaml)
+
+def private_hits(**kwargs):
+    return requests.get(
+        f"{API_BASE}/stats.lua",
+        params={"list": TEST_LIST, "domain": TEST_DOMAIN, "emailsOnly": True, "d": '2019-09'},
+        **kwargs
+    ).json()['hits']
+
+def mint_token(cookies, **extra):
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "itest", **extra}, cookies=cookies)
+    assert res.status_code == 200, res.text
+    jzon = res.json()
+    assert jzon['okay']
+    assert jzon['token'].startswith('pmt_')
+    return jzon
+
+def bearer(token):
+    return {"Authorization": f"Bearer {token}"}
+
+def test_token_info():
+    jzon = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()
+    assert jzon['enabled'] is True
+    assert jzon['ttl'] <= jzon['max_ttl']
+
+def test_token_requires_login():
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "itest"})
+    assert res.status_code == 403
+    assert res.json()['error'] == 'login_required'
+
+def test_token_requires_post():
+    res = requests.get(f"{API_BASE}/token.lua", cookies=get_cookies('user'))
+    assert res.status_code == 405
+
+def test_token_rejects_cross_origin():
+    res = requests.post(
+        f"{API_BASE}/token.json", json={"client": "itest"}, cookies=get_cookies('user'),
+        headers={"Origin": "https://evil.example.org"}
+    )
+    assert res.status_code == 403
+    assert res.json()['error'] == 'cross_origin'
+
+def test_token_redirect_uri_must_be_loopback():
+    cookies = get_cookies('user')
+    for bad in ("https://evil.example.org:8000/cb", "http://127.0.0.1/cb", "http://user@127.0.0.1:9/cb",
+                "http://localhost:9/cb"):
+        res = requests.post(f"{API_BASE}/token.json", json={"redirect_uri": bad}, cookies=cookies)
+        assert res.status_code == 400, bad
+    jzon = mint_token(cookies, redirect_uri="http://127.0.0.1:39818/callback")
+    assert jzon['redirect_uri'] == "http://127.0.0.1:39818/callback"
+
+def test_token_grants_session_read_access():
+    assert private_hits() == 0
+    jzon = mint_token(get_cookies('user'))
+    assert private_hits(headers=bearer(jzon['token'])) == 4
+    prefs = requests.get(f"{API_BASE}/preferences.lua", headers=bearer(jzon['token'])).json()
+    assert prefs['login']['token']['client'] == 'itest'
+    assert prefs['login']['token']['expires'] == jzon['expires']
+
+def test_token_invalid_is_anonymous():
+    assert private_hits(headers=bearer("pmt_notarealtoken")) == 0
+
+def test_token_ignores_cookie_when_bearer_given():
+    # A bad token must not fall back to the cookie sent alongside it
+    assert private_hits(headers=bearer("pmt_notarealtoken"), cookies=get_cookies('user')) == 0
+
+def test_token_is_read_only():
+    token = mint_token(get_cookies('admin'))['token']
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "chained"}, headers=bearer(token))
+    assert res.status_code == 403
+    assert res.json()['error'] == 'token_not_allowed'
+    res = requests.post(f"{API_BASE}/mgmt.json", json={"action": "log"}, headers=bearer(token))
+    assert res.status_code == 403
+    res = requests.post(f"{API_BASE}/compose.json", json={"to": "x@apache.org", "subject": "s", "body": "b"},
+                        headers=bearer(token))
+    assert res.status_code == 403
+
+def test_token_revoke_self():
+    token = mint_token(get_cookies('user'))['token']
+    res = requests.post(f"{API_BASE}/token.json", json={"action": "revoke"}, headers=bearer(token))
+    assert res.json()['revoked'] == 1
+    assert private_hits(headers=bearer(token)) == 0
+
+def test_token_logout_via_token_keeps_browser_session():
+    cookies = get_cookies('user')
+    token = mint_token(cookies)['token']
+    requests.get(f"{API_BASE}/preferences.lua", params={"logout": "true"}, headers=bearer(token))
+    assert private_hits(headers=bearer(token)) == 0
+    assert private_hits(cookies=cookies) == 4
+
+def test_token_dies_with_browser_session():
+    cookies = get_cookies('user')
+    token = mint_token(cookies)['token']
+    assert private_hits(headers=bearer(token)) == 4
+    requests.get(f"{API_BASE}/preferences.lua", params={"logout": "true"}, cookies=cookies)
+    assert private_hits(headers=bearer(token)) == 0
+
+def test_token_list_and_revoke_by_id():
+    cookies = get_cookies('user')
+    first = mint_token(cookies)
+    second = mint_token(cookies)
+    listed = requests.post(f"{API_BASE}/token.json", json={"action": "list"}, cookies=cookies).json()['tokens']
+    assert {t['id'] for t in listed} == {first['id'], second['id']}
+    assert all('token' not in t for t in listed)
+    res = requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": first['id']}, cookies=cookies)
+    assert res.json()['revoked'] == 1
+    assert private_hits(headers=bearer(first['token'])) == 0
+    assert private_hits(headers=bearer(second['token'])) == 4
