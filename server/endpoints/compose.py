@@ -47,6 +47,10 @@ async def process(
 
     to = indata.get("to", "")
 
+    # Session tokens are read-only credentials; sending mail requires the real browser session
+    if session.token:
+        return aiohttp.web.Response(headers={}, status=403, text="Session tokens cannot be used to send email.")
+
     # If logged in and everything, prep for dispatch
     if session.credentials and session.credentials.authoritative:
         subject = indata.get("subject")

@@ -42,7 +42,7 @@ async def process(
     doc = indata.get("document")
     if not docs and doc:
         docs = [doc]
-    if not session.credentials or not session.credentials.admin or not server.config.ui.mgmt_enabled:
+    if not session.credentials or not session.credentials.admin or not server.config.ui.mgmt_enabled or session.token:
         return aiohttp.web.Response(headers={}, status=403, text="You need administrative access to use this feature.")
     assert session.database, "No session database connection could be found!"
 
