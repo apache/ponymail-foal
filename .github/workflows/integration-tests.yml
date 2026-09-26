@@ -83,8 +83,9 @@ jobs:
               name:           Test Auth User
               oauth_portal:   http://localhost:8080/api/testauth
               .oauth_url:     http://localhost:8080/api/testauth
+        tokens:
+          enabled: true
 
-        
         EOD
         echo server/ponymail.yaml 
         cat server/ponymail.yaml

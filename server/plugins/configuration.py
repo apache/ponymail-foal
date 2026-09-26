@@ -17,6 +17,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import plugins.tokens
+
+
 class ServerConfig:
     port: int
     ip: str
@@ -74,6 +77,18 @@ class OAuthConfig:
         self.providers = subyaml.get("providers", {})
 
 
+class TokenConfig:
+    enabled: bool
+    ttl: int
+    max_ttl: int
+
+    def __init__(self, subyaml: dict):
+        # Short-term session tokens for external clients (see plugins/tokens.py). Off by default.
+        self.enabled = bool(subyaml.get("enabled", False))
+        self.max_ttl = int(subyaml.get("max_ttl", 86400))  # Hard cap on token lifetime, in seconds
+        self.ttl = min(int(subyaml.get("ttl", 3600)), self.max_ttl)  # Default token lifetime, in seconds
+
+
 class DBConfig:
     dburl: str
     hostname: str
@@ -103,6 +118,7 @@ class Configuration:
     tasks: TaskConfig
     oauth: OAuthConfig
     ui: UIConfig
+    tokens: TokenConfig
 
     def __init__(self, yml: dict):
         self.server = ServerConfig(yml.get("server", {}))
@@ -110,6 +126,7 @@ class Configuration:
         self.tasks = TaskConfig(yml.get("tasks", {}))
         self.oauth = OAuthConfig(yml.get("oauth", {}))
         self.ui = UIConfig(yml.get("ui", {}))
+        self.tokens = TokenConfig(yml.get("tokens", {}) or {})
 
 
 class InterData:
@@ -120,8 +137,10 @@ class InterData:
     lists: dict
     sessions: dict
     activity: dict
+    tokens: plugins.tokens.TokenStore
 
     def __init__(self):
         self.lists = {}
         self.sessions = {}
+        self.tokens = plugins.tokens.TokenStore()
         self.activity = {}
