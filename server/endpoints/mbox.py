@@ -120,4 +120,4 @@ async def process(
 
 def register(_server: plugins.server.BaseServer):
     # Note that this is a StreamingEndpoint!
-    return plugins.server.StreamingEndpoint(process)
+    return plugins.server.StreamingEndpoint(process, token_allowed=True)

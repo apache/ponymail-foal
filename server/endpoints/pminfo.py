@@ -25,4 +25,4 @@ async def process(server: plugins.server.BaseServer, _session: dict, _indata: di
 
 
 def register(_server: plugins.server.BaseServer):
-    return plugins.server.Endpoint(process)
+    return plugins.server.Endpoint(process, token_allowed=True)

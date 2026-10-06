@@ -170,9 +170,14 @@ class Server(plugins.server.BaseServer):
                 # but could be an exception (that needs a traceback) OR
                 # it could be a custom response, which we just pass along to the client.
                 xhandler = self.handlers[handler]
-                if isinstance(xhandler, plugins.server.StreamingEndpoint):
+                # Fail-safe: a session token is refused unless the endpoint explicitly allows it
+                if session.token and not xhandler.token_allowed:
+                    output = aiohttp.web.Response(
+                        headers=headers, status=403, text="Session tokens cannot be used with this endpoint."
+                    )
+                elif isinstance(xhandler, plugins.server.StreamingEndpoint):
                     output = await xhandler.exec(self, request, session, indata)
-                elif isinstance(xhandler, plugins.server.Endpoint):
+                else:  # plugins.server.Endpoint
                     output = await xhandler.exec(self, session, indata)
                 if session.database:
                     self.dbpool.put_nowait(session.database)
