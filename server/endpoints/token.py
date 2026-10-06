@@ -24,7 +24,7 @@ Mints, lists and revokes short-term session tokens (see plugins/tokens.py).
     action=create  - mint a token for the current browser session (default action)
     action=list    - list the tokens minted from the current browser session
     action=revoke  - revoke a token: the calling token itself when authenticated with one,
-                     otherwise `id=<token id>` or `all=true` for the current browser session
+                     otherwise `id=<token id>`, or `id=*` for all, from the current browser session
 """
 
 import json
@@ -36,8 +36,6 @@ import aiohttp.web
 import plugins.server
 import plugins.session
 import plugins.tokens
-
-MIN_TTL = 60
 
 
 def reply(status: int, **payload: typing.Any) -> aiohttp.web.Response:
@@ -81,12 +79,12 @@ async def process(
     if not same_origin(request, session):
         return error(403, "cross_origin", "Session tokens can only be requested from this site.")
 
-    if action == "revoke" and session.token:
+    # A session token may only revoke itself; every other action needs the browser session
+    if session.token:
+        if action != "revoke":
+            return error(403, "token_not_allowed", "A session token cannot be used to manage session tokens.")
         server.data.tokens.revoke_id(session.token.session_id, session.token.token_hash)
         return reply(200, okay=True, revoked=1)
-
-    if session.token:
-        return error(403, "token_not_allowed", "A session token cannot be used to manage session tokens.")
 
     if not session.credentials:
         return error(403, "login_required", "You need to be logged in to use session tokens.")
@@ -103,7 +101,7 @@ async def process(
             ttl = int(indata.get("ttl") or config.ttl)
         except ValueError:
             return error(400, "invalid_ttl", "ttl must be a number of seconds.")
-        ttl = max(MIN_TTL, min(ttl, config.max_ttl))
+        ttl = max(plugins.tokens.MIN_TTL, min(ttl, config.max_ttl))
         assert session.cid, "Logged in session without an account id"
         token, record = server.data.tokens.issue(session.cookie, session.cid, indata.get("client", ""), ttl)
         payload = {"okay": True, "token": token, "ttl": ttl, **record.public()}
@@ -115,13 +113,16 @@ async def process(
         return reply(200, okay=True, tokens=[r.public() for r in server.data.tokens.for_session(session.cookie)])
 
     if action == "revoke":
-        if str(indata.get("all", "")).lower() in ("1", "true", "yes"):
+        token_id = str(indata.get("id") or "")
+        if not token_id:
+            return error(400, "missing_id", "Give the id of the token to revoke, or * for all of them.")
+        if token_id == "*":
             return reply(200, okay=True, revoked=server.data.tokens.revoke_session(session.cookie))
-        revoked = server.data.tokens.revoke_id(session.cookie, str(indata.get("id", "")))
+        revoked = server.data.tokens.revoke_id(session.cookie, token_id)
         return reply(200, okay=True, revoked=int(revoked))
 
     return error(400, "unknown_action", "Unknown action.")
 
 
 def register(_server: plugins.server.BaseServer):
-    return plugins.server.StreamingEndpoint(process)
+    return plugins.server.StreamingEndpoint(process, token_allowed=True)

@@ -348,11 +348,10 @@ POST /api/token.json
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `action` | string | no | `create` (default), `info`, `list` or `revoke` |
-| `client` | string | no | Name of the client the token is for; shown to the user (`create`) |
-| `ttl` | integer | no | Requested lifetime in seconds, capped at `tokens.max_ttl` (`create`) |
-| `redirect_uri` | string | no | Loopback URL the web UI hands the token to (`create`, see below) |
-| `id` | string | no | Token id to revoke (`revoke`, browser session only) |
-| `all` | boolean | no | Revoke every token of the browser session (`revoke`) |
+| `client` | string | no | Name of the client the token is for; shown to the user (`create`). Default: `unknown client` |
+| `ttl` | integer | no | Requested lifetime in seconds (`create`). Default: `tokens.ttl` (3600 unless configured); clamped to between 60 and `tokens.max_ttl` (86400 unless configured) |
+| `redirect_uri` | string | no | Loopback URL the web UI hands the token to (`create`, see below); omit for manual copy |
+| `id` | string | for `revoke` from a browser session | Token id to revoke, or `*` for every token of the browser session (`revoke`, browser session only) |
 
 `info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "max_ttl": 86400}`.
 `create` and `list` need a logged-in **browser session** (not a token) and a
@@ -376,7 +375,7 @@ a `Bearer` token revokes that token.
 The raw token is returned once and never again. Errors are returned as
 `{"okay": false, "error": "<code>", "message": "..."}` with codes
 `tokens_disabled`, `login_required`, `token_not_allowed`, `cross_origin`,
-`method_not_allowed`, `invalid_redirect_uri` and `invalid_ttl`.
+`method_not_allowed`, `invalid_redirect_uri`, `invalid_ttl` and `missing_id`.
 
 #### Browser hand-off (`webui/token.html`)
 

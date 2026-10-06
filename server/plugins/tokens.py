@@ -29,8 +29,9 @@ Properties:
 - Bound to the browser session that minted it. Logging out of that session
   (or the session expiring) invalidates every token minted from it.
 - Short-lived: expires after `tokens.ttl` seconds (capped by `tokens.max_ttl`).
-- Read-only: a token-authenticated request cannot mint further tokens, send
-  email (compose) or use the management console.
+- Read-only: a token-authenticated request is refused by every endpoint that
+  does not explicitly allow tokens (see `token_allowed` in plugins/server.py),
+  so it cannot send email, use the management console or mint further tokens.
 - Stored only as a SHA-256 hash, in memory. A server restart revokes all
   outstanding tokens, which is acceptable for credentials this short-lived.
 """
@@ -45,6 +46,9 @@ import urllib.parse
 TOKEN_PREFIX = "pmt_"
 TOKEN_BYTES = 32  # 256 bits of entropy
 MAX_CLIENT_NAME_LENGTH = 64
+MIN_TTL = 60  # Shortest lifetime a client may request, in seconds
+DEFAULT_TTL = 3600  # Default token lifetime (tokens.ttl), in seconds
+DEFAULT_MAX_TTL = 86400  # Default hard cap on token lifetime (tokens.max_ttl), in seconds
 # Loopback IP literals only: "localhost" is refused, as RFC 8252 section 8.3 recommends,
 # since it can be resolved to something other than the loopback interface.
 LOOPBACK_HOSTS = ("127.0.0.1", "::1")

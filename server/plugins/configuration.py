@@ -85,8 +85,8 @@ class TokenConfig:
     def __init__(self, subyaml: dict):
         # Short-term session tokens for external clients (see plugins/tokens.py). Off by default.
         self.enabled = bool(subyaml.get("enabled", False))
-        self.max_ttl = int(subyaml.get("max_ttl", 86400))  # Hard cap on token lifetime, in seconds
-        self.ttl = min(int(subyaml.get("ttl", 3600)), self.max_ttl)  # Default token lifetime, in seconds
+        self.max_ttl = int(subyaml.get("max_ttl", plugins.tokens.DEFAULT_MAX_TTL))
+        self.ttl = min(int(subyaml.get("ttl", plugins.tokens.DEFAULT_TTL)), self.max_ttl)
 
 
 class DBConfig:
