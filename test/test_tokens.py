@@ -144,6 +144,13 @@ def test_validate_redirect_uri(uri, ok):
     assert (tokens.validate_redirect_uri(uri) is not None) == ok
 
 
+def test_validate_redirect_uri_length_limit():
+    prefix = "http://127.0.0.1:1234/"
+    uri = prefix + "x" * (tokens.MAX_REDIRECT_URI_LENGTH - len(prefix))
+    assert tokens.validate_redirect_uri(uri) == uri
+    assert tokens.validate_redirect_uri(uri + "x") is None
+
+
 def test_sanitize_client_name():
     assert tokens.sanitize_client_name("ponymail-mcp 1.2 (Claude)") == "ponymail-mcp 1.2 (Claude)"
     assert tokens.sanitize_client_name("<script>x</script>") == "scriptx/script"

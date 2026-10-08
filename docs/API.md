@@ -394,7 +394,9 @@ the user's explicit approval, in the style of RFC 8252 loopback redirects:
 
 `redirect_uri` must be `http(s)` on `127.0.0.1` or `[::1]` (not
 `localhost`, per RFC 8252 section 8.3), with an explicit port and no
-credentials or fragment; the server enforces this. Without a `redirect_uri` the page shows the token for the user to copy.
+credentials or fragment, and must be at most 512 characters; the server
+enforces this. Without a `redirect_uri` the page shows the token for the user
+to copy.
 
 A token-authenticated `preferences.json` response includes
 `login.token` (`id`, `client`, `created`, `expires`), and `logout=true` sent

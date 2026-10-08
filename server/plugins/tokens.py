@@ -44,8 +44,9 @@ import typing
 import urllib.parse
 
 TOKEN_PREFIX = "pmt_"
-TOKEN_BYTES = 32  # 256 bits of entropy
+TOKEN_BYTE_COUNT = 32  # 32 random bytes provide 256 bits of token entropy.
 MAX_CLIENT_NAME_LENGTH = 64
+MAX_REDIRECT_URI_LENGTH = 512  # Maximum accepted redirect URI length, in characters.
 MIN_TTL = 60  # Shortest lifetime a client may request, in seconds
 DEFAULT_TTL = 3600  # Default token lifetime (tokens.ttl), in seconds
 DEFAULT_MAX_TTL = 86400  # Default hard cap on token lifetime (tokens.max_ttl), in seconds
@@ -122,7 +123,7 @@ def validate_redirect_uri(uri: typing.Any) -> typing.Optional[str]:
     an explicit port are allowed (RFC 8252 sections 7.3 and 8.3), so a token can only ever be handed
     to a process running on the user's own machine. Returns the normalized URI or None.
     """
-    if not isinstance(uri, str) or len(uri) > 512:
+    if not isinstance(uri, str) or len(uri) > MAX_REDIRECT_URI_LENGTH:
         return None
     try:
         parts = urllib.parse.urlsplit(uri)
@@ -154,7 +155,7 @@ class TokenStore:
     def issue(self, session_id: str, cid: str, client: str, ttl: int) -> typing.Tuple[str, TokenRecord]:
         self.purge()
         now = int(time.time())
-        token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTES)
+        token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTE_COUNT)
         record = TokenRecord(
             token_hash=hash_token(token),
             session_id=session_id,
