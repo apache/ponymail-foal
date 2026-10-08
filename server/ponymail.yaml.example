@@ -68,3 +68,12 @@ oauth:
   #  google_client_id:     ~
   #  github_client_id:     ~
   #  github_client_secret: ~
+
+# Short-term session tokens for external clients (CLIs, scripts, MCP servers).
+# A logged-in user approves a token at /token.html; the client sends it as
+# "Authorization: Bearer pmt_...". Tokens are read-only, die with the browser
+# session they came from, and are kept in memory only.
+#tokens:
+#  enabled: true
+#  ttl:     3600      # default lifetime, seconds
+#  max_ttl: 86400     # longest lifetime a client may ask for, seconds

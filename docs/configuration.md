@@ -176,6 +176,33 @@ oauth:
 
 ---
 
+## `tokens`
+
+Short-term session tokens let an external client (a CLI, a script, an MCP
+server) read the archives on behalf of a logged-in user without handling
+the session cookie. See [API.md](API.md#tokenjson) for the flow.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable the `token` endpoint and `Authorization: Bearer` authentication |
+| `ttl` | integer | `3600` | Default token lifetime in seconds |
+| `max_ttl` | integer | `86400` | Upper bound for the lifetime a client may request, in seconds |
+
+Tokens are bound to the browser session that created them: logging out of
+that session revokes them. They are read-only (they cannot send email, use
+the management console, or create further tokens). They are held in memory
+as SHA-256 hashes only, so restarting the server revokes all of them.
+
+Example:
+```yaml
+tokens:
+  enabled: true
+  ttl: 3600
+  max_ttl: 86400
+```
+
+---
+
 ## `archiver`
 
 Controls threading behavior when archiving new emails. These settings
