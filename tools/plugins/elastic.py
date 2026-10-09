@@ -61,6 +61,7 @@ class Elastic:
         self.db_notification = dbname + '-notification'
         self.db_auditlog = dbname + '-auditlog'
         self.db_version = 0
+        self.db_distribution = None
         self.is_async = is_async
 
         dburl = config.get('elasticsearch', 'dburl', fallback=None)
@@ -115,7 +116,8 @@ class Elastic:
             )
             # This won't work with async, so for now we'll ignore it there...
             es_engine_major = self.engineMajor()
-            if es_engine_major in [7, 8]:
+            # OpenSearch (any major) implements the ES 7.x API this client uses
+            if es_engine_major in [7, 8] or self.engineDistribution() == "opensearch":
                 self.wait_for_active_shards = config.get("elasticsearch", "wait", fallback=1)
             else:
                 raise ValueError("Unexpected elasticsearch version ", es_engine_major)
@@ -148,6 +150,15 @@ class Elastic:
 
     def engineMajor(self):
         return int(self.engineVersion().split(".")[0])
+
+    def engineDistribution(self):
+        if not self.db_distribution:
+            try:
+                self.db_distribution = self.es.info()["version"].get("distribution", "elasticsearch")
+            except ES_ConnectionError:
+                # default if cannot connect; allows retry
+                return "unknown"
+        return self.db_distribution
 
     def search(self, **kwargs):
         return self.es.search(**kwargs)
