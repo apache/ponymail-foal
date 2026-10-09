@@ -32,12 +32,33 @@ async def process(formdata: dict, _session, server) -> typing.Optional[dict]:
     # Extract domain, allowing for :port
     # Does not handle user/password prefix etc
     m = re.match(r"https?://([^/:]+)(?::\d+)?/", oauth_url)
-    if m:
-        oauth_domain = m.group(1)
-        headers = {"User-Agent": "Pony Mail OAuth Agent/0.1"}
-        # This is a synchronous process, so we offload it to an async runner in order to let the main loop continue.
-        async with aiohttp.client.request("POST", oauth_url, headers=headers, data=formdata) as rv:
+    if not m:
+        return None
+    oauth_domain = m.group(1)
+    headers = {"User-Agent": "Pony Mail OAuth Agent/0.1", "Accept": "application/json"}
+    client_secret = provider.get('.client_secret')
+    if client_secret:
+        # Standard authorization code exchange (RFC 6749 section 4.1.3)
+        data = {
+            "grant_type": "authorization_code",
+            "code": formdata.get("code", ""),
+            "client_id": provider.get("client_id", ""),
+            "client_secret": client_secret,
+        }
+        # Must match the redirect_uri used on the authorization request
+        if formdata.get("redirect_uri"):
+            data["redirect_uri"] = formdata["redirect_uri"]
+    else:
+        # No client secret: pass the callback parameters through as-is. This is the
+        # non-standard ASF OAuth flow used by lists.apache.org, preserved unchanged.
+        data = formdata
+    async with aiohttp.client.request("POST", oauth_url, headers=headers, data=data) as rv:
+        js = await rv.json()
+    # Identity is either in the token response, or fetched from a userinfo endpoint
+    userinfo_url = provider.get('.userinfo_url')
+    if userinfo_url and js.get("access_token"):
+        headers["Authorization"] = "Bearer %s" % js["access_token"]
+        async with aiohttp.client.request("GET", userinfo_url, headers=headers) as rv:
             js = await rv.json()
-            js["oauth_domain"] = oauth_domain
-        return js
-    return None
+    js["oauth_domain"] = oauth_domain
+    return js

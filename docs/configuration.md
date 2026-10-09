@@ -145,6 +145,9 @@ used as the provider identifier (e.g. `apache`, `google`, `github`).
 | `client_id` | string | OAuth client ID (for providers that need it in the URL) |
 | `scope` | string | OAuth scope to request |
 | `construct` | boolean | When `true`, all provider keys are URL-encoded into the authorization request |
+| `.client_secret` | string | When set, the token exchange is a standard RFC 6749 authorization code exchange (`grant_type`, `code`, `redirect_uri`, `client_id`, `client_secret`) instead of passing the callback parameters through |
+| `.userinfo_url` | string | Optional. When set, the user's identity is fetched from this URL with the bearer token; otherwise it is read from the token response |
+| `standard` | boolean | When `true`, the frontend uses a constant `redirect_uri` and sends `state` as a separate parameter, as providers with exact `redirect_uri` matching require |
 | `fullname_key` | string | JSON key in the OAuth response containing the user's full name |
 | `email_key` | string | JSON key in the OAuth response containing the user's email |
 
