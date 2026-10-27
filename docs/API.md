@@ -349,14 +349,21 @@ POST /api/token.json
 |-----------|------|----------|-------------|
 | `action` | string | no | `create` (default), `info`, `list` or `revoke` |
 | `client` | string | no | Name of the client the token is for; shown to the user (`create`). Default: `unknown client` |
-| `ttl` | integer | no | Requested lifetime in seconds (`create`). Default: `tokens.ttl` (3600 unless configured); clamped to between 60 and `tokens.max_ttl` (86400 unless configured) |
+| `ttl` | integer | no | Requested lifetime in seconds (`create`). Default: `tokens.ttl` (3600 unless configured). Must be between 60 and `tokens.max_ttl` (86400 unless configured); anything else is refused with `invalid_ttl` |
 | `redirect_uri` | string | no | Loopback URL the web UI hands the token to (`create`, see below); omit for manual copy |
-| `id` | string | for `revoke` from a browser session | Token id to revoke, or `*` for every token of the browser session (`revoke`, browser session only) |
+| `id` | string | for `revoke` from a browser session | Token id to revoke, or `*` for all of the user's tokens, whichever browser session created them (`revoke`, browser session only) |
 
-`info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "max_ttl": 86400}`.
+`info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "min_ttl": 60, "max_ttl": 86400}`.
 `create` and `list` need a logged-in **browser session** (not a token) and a
 POST; requests with a foreign `Origin` header are refused. `revoke` sent with
 a `Bearer` token revokes that token.
+
+`list` and `revoke` act on all of the user's tokens, not only those created
+from the calling browser session, so a user who closed a browser without
+logging out can still revoke the tokens created from it. Each `list` entry
+has `id`, `client`, `created`, `expires` and `this_session` (whether the
+calling browser session created it). See
+[session_tokens.md](session_tokens.md) for the full token lifecycle.
 
 #### Response (`create`)
 

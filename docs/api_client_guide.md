@@ -47,6 +47,18 @@ Cookie: ponymail=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 Obtain the cookie by completing an OAuth flow via the web UI, then
 extract it from your browser's DevTools (Network tab → Request Headers).
 
+For read access, a **session token** is the better option when the server
+enables them: create one from the **Session tokens** entry of the user menu
+(or let your tool request one through the browser) and send it instead of a
+cookie:
+
+```
+Authorization: Bearer pmt_...
+```
+
+Tokens are short-lived and read-only. See [session_tokens.md](session_tokens.md)
+for how to get one, the token lifecycle and a sample client script.
+
 ---
 
 ## Common Operations
@@ -192,4 +204,4 @@ There is no rate limiting on the API. However, be respectful:
 
 - [API.md](API.md) — Full endpoint reference with response schemas
 - [search.md](search.md) — Search query syntax
-- GitHub issue [#312](https://github.com/apache/ponymail-foal/issues/312) — API token support (not yet implemented)
+- [session_tokens.md](session_tokens.md) — Short-term session tokens for scripts and tools
