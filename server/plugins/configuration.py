@@ -86,7 +86,12 @@ class TokenConfig:
         # Short-term session tokens for external clients (see plugins/tokens.py). Off by default.
         self.enabled = bool(subyaml.get("enabled", False))
         self.max_ttl = int(subyaml.get("max_ttl", plugins.tokens.DEFAULT_MAX_TTL))
-        self.ttl = min(int(subyaml.get("ttl", plugins.tokens.DEFAULT_TTL)), self.max_ttl)
+        self.ttl = int(subyaml.get("ttl", plugins.tokens.DEFAULT_TTL))
+        if not plugins.tokens.MIN_TTL <= self.ttl <= self.max_ttl:
+            raise ValueError(
+                "tokens.ttl must be between %d and tokens.max_ttl (%d) seconds, got %d"
+                % (plugins.tokens.MIN_TTL, self.max_ttl, self.ttl)
+            )
 
 
 class DBConfig:

@@ -84,12 +84,14 @@ async def process(
                 prefs["login"]["credentials"]["fully_delete"] = True
         if session.token:
             prefs["login"]["token"] = session.token.public()
+        elif server.config.tokens.enabled:  # Lets the UI offer the "Session tokens" menu entry
+            prefs["login"]["tokens_enabled"] = True
 
     # Logging out??
     if indata.get("logout"):
         # A session token logging out only revokes itself, never the browser session behind it
         if session.token:
-            server.data.tokens.revoke_id(session.token.session_id, session.token.token_hash)
+            server.data.tokens.revoke_id(session.token.cid, session.token.token_hash)
             return {"okay": True}
 
         # Tokens minted from this session die with it
