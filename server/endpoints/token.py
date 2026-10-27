@@ -28,6 +28,7 @@ Mints, lists and revokes short-term session tokens (see plugins/tokens.py).
 """
 
 import json
+import re
 import typing
 import urllib.parse
 
@@ -54,7 +55,7 @@ def parse_ttl(value: typing.Any) -> typing.Optional[int]:
     """A whole number of seconds, from JSON (int) or a form (digits); None for anything else"""
     if isinstance(value, int) and not isinstance(value, bool):
         return value
-    if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+    if isinstance(value, str) and re.fullmatch(r"-?[0-9]+", value.strip()):
         return int(value)
     return None
 
@@ -115,7 +116,7 @@ async def process(
                 )
         invalid_ttl = "ttl must be a number of seconds between %d and %d." % (plugins.tokens.MIN_TTL, config.max_ttl)
         # Only an omitted ttl falls back to the default; any value that is given must be valid
-        ttl = parse_ttl(indata["ttl"]) if indata.get("ttl") not in (None, "") else config.ttl
+        ttl = parse_ttl(indata["ttl"]) if "ttl" in indata else config.ttl
         if ttl is None:
             return error(400, "invalid_ttl", invalid_ttl)
         assert session.cid, "Logged in session without an account id"
