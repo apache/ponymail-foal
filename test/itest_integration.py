@@ -505,8 +505,20 @@ def test_token_requires_login():
 
 @needs_tokens
 def test_token_requires_post():
-    res = requests.get(f"{API_BASE}/token.lua", cookies=get_cookies('user'))
+    cookies = get_cookies('user')
+    for action in ("create", "revoke"):
+        res = requests.get(f"{API_BASE}/token.lua", params={"action": action, "id": "*"}, cookies=cookies)
+        assert res.status_code == 405, action
+    res = requests.get(f"{API_BASE}/token.lua", cookies=cookies)  # create is the default action
     assert res.status_code == 405
+
+@needs_tokens
+def test_token_list_allows_get():
+    cookies = get_cookies('user')
+    token = mint_token(cookies)
+    res = requests.get(f"{API_BASE}/token.lua", params={"action": "list"}, cookies=cookies)
+    assert res.status_code == 200
+    assert token['id'] in {t['id'] for t in res.json()['tokens']}
 
 @needs_tokens
 def test_token_rejects_cross_origin():

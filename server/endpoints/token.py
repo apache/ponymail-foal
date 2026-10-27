@@ -93,8 +93,9 @@ async def process(
     if not config.enabled:
         return error(403, "tokens_disabled", "Session tokens are not enabled on this server.")
 
-    if request.method != "POST":
-        return error(405, "method_not_allowed", "Use POST for this endpoint.")
+    # list only reads, so GET is fine for it; actions that create or revoke tokens need a POST
+    if request.method != "POST" and action != "list":
+        return error(405, "method_not_allowed", "Use POST for this action.")
 
     if not same_origin(request, session):
         return error(403, "cross_origin", "Session tokens can only be requested from this site.")
