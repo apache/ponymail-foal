@@ -354,9 +354,11 @@ POST /api/token.json
 | `id` | string | for `revoke` from a browser session | Token id to revoke, or `*` for all of the user's tokens, whichever browser session created them (`revoke`, browser session only) |
 
 `info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "min_ttl": 60, "max_ttl": 86400}`.
-`create` and `list` need a logged-in **browser session** (not a token) and a
-POST; requests with a foreign `Origin` header are refused. `revoke` sent with
-a `Bearer` token revokes that token.
+`create`, `list` and `revoke` need a logged-in **browser session** (not a
+token). `create` and `revoke` must be sent as a POST; `list` only reads, so it
+also accepts GET (`GET /api/token.lua?action=list`). Requests with a foreign
+`Origin` header are refused. `revoke` sent with a `Bearer` token revokes that
+token.
 
 `list` and `revoke` act on all of the user's tokens, not only those created
 from the calling browser session, so a user who closed a browser without
