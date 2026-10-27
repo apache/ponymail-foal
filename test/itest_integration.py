@@ -669,7 +669,7 @@ def test_token_rejects_ttl_out_of_range():
     info = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()
     # Only an omitted ttl gets the default: 0, "" and null are refused; fractions are not truncated;
     # malformed strings and wrong types are refused rather than crashing
-    for bad in (-1, 0, "0", 59, info['max_ttl'] + 1, "soon", "--60", "", None, 120.5, info['max_ttl'] + 0.5, [3600],
+    for bad in (-1, 0, "0", 59, info['max_ttl'] + 1, "soon", "--60", "9" * 5000, "", None, 120.5, info['max_ttl'] + 0.5, [3600],
                 {"ttl": 3600}, True):
         res = requests.post(f"{API_BASE}/token.json", json={"client": "itest", "ttl": bad}, cookies=cookies)
         assert res.status_code == 400, bad
