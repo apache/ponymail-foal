@@ -16,7 +16,7 @@
 */
 // THIS IS AN AUTOMATICALLY COMBINED FILE. PLEASE EDIT THE source/ FILES!
 
-const PONYMAIL_REVISION = '6a1de18';
+const PONYMAIL_REVISION = '3b05682';
 
 
 /******************************************
@@ -3350,6 +3350,12 @@ function init_preferences(state, json) {
         // Generate user menu
         prefsmenu.innerHTML = "";
 
+        if (G_ponymail_preferences.login.tokens_enabled) {
+            let tokens = new HTML('a', {
+                href: "token.html"
+            }, "Session tokens");
+            prefsmenu.inject(new HTML('li', {}, tokens));
+        }
 
         let logout = new HTML('a', {
             href: "javascript:void(logout());"
