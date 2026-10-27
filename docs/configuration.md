@@ -185,11 +185,13 @@ the session cookie. See [API.md](API.md#tokenjson) for the flow.
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `enabled` | boolean | `false` | Enable the `token` endpoint and `Authorization: Bearer` authentication |
-| `ttl` | integer | `3600` | Default token lifetime in seconds |
+| `ttl` | integer | `3600` | Default token lifetime in seconds; must be between 60 and `max_ttl`, or the server refuses to start |
 | `max_ttl` | integer | `86400` | Upper bound for the lifetime a client may request, in seconds |
 
 Tokens are bound to the browser session that created them: logging out of
-that session revokes them. They are read-only (they cannot send email, use
+that session revokes them. Users can also list and revoke all of their tokens
+from the **Session tokens** entry of the user menu; see
+[session_tokens.md](session_tokens.md) for the full lifecycle. They are read-only (they cannot send email, use
 the management console, or create further tokens). They are held in memory
 as SHA-256 hashes only, so restarting the server revokes all of them.
 
