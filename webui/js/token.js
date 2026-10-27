@@ -175,7 +175,9 @@ function tokenRevoke(id, what) {
 function tokenCreateForm(info) {
     const name = tokenEl('input', { type: 'text', class: 'form-control', maxlength: '64', value: 'manual' });
     const lifetime = tokenEl('select', { class: 'form-control' });
-    for (const seconds of [600, 3600, 4 * 3600, 8 * 3600, 86400]) {
+    // Always offer the server's default and maximum, so a tight configuration still has choices
+    const choices = new Set([600, 3600, 4 * 3600, 8 * 3600, 86400, info.ttl, info.max_ttl]);
+    for (const seconds of [...choices].sort((a, b) => a - b)) {
         if (seconds < info.min_ttl || seconds > info.max_ttl) continue;
         const opt = tokenEl('option', { value: String(seconds) }, tokenDuration(seconds));
         if (seconds === info.ttl) opt.setAttribute('selected', 'selected');
