@@ -36,6 +36,7 @@ import json
 import secrets
 import sys
 import typing
+import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
@@ -53,6 +54,20 @@ def api(base: str, endpoint: str, token: str, **params: typing.Any) -> dict:
     )
     with urllib.request.urlopen(req) as res:
         return json.load(res)
+
+
+def revoke(base: str, token: str) -> None:
+    """A token may always revoke itself. Never let cleanup hide the outcome of the main work."""
+    try:
+        api(base, "token.json", token, action="revoke")
+        print("Token revoked.")
+    except urllib.error.HTTPError as e:
+        if e.code == 403:  # Expired or already revoked: the server no longer knows the token
+            print("Token was already invalid.")
+        else:
+            print(f"Could not revoke the token (HTTP {e.code}); it stays valid until it expires.", file=sys.stderr)
+    except urllib.error.URLError as e:
+        print(f"Could not revoke the token ({e.reason}); it stays valid until it expires.", file=sys.stderr)
 
 
 def token_from_browser(base: str, ttl: typing.Optional[int]) -> str:
@@ -122,9 +137,7 @@ def main() -> None:
             print(f"  {email['subject']}  ({email['from']})")
     finally:
         if not args.keep:
-            # A token may always revoke itself
-            api(base, "token.json", token, action="revoke")
-            print("Token revoked.")
+            revoke(base, token)
 
 
 if __name__ == "__main__":
