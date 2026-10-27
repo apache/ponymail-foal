@@ -739,6 +739,15 @@ a.dropdown-toggle {
     right: 0;
 }
 
+/* Menu entries stack, unlike the inline icons in the bar above them */
+#preferences_ul .dropdown-menu > li {
+    display: block;
+}
+
+#preferences_ul .dropdown-menu > li > a {
+    display: block !important;
+}
+
 #display_options_dropdown {
     width: 380px;
     z-index: 1001;
