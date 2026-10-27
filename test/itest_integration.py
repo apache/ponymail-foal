@@ -667,14 +667,17 @@ def test_token_revoke_by_id_cannot_touch_another_user():
 def test_token_rejects_ttl_out_of_range():
     cookies = get_cookies('user')
     info = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()
-    # 0 must not fall back to the default; fractions must not be truncated; wrong types must not crash
-    for bad in (-1, 0, "0", 59, info['max_ttl'] + 1, "soon", 120.5, info['max_ttl'] + 0.5, [3600], {"ttl": 3600},
-                True):
+    # Only an omitted ttl gets the default: 0, "" and null are refused; fractions are not truncated;
+    # malformed strings and wrong types are refused rather than crashing
+    for bad in (-1, 0, "0", 59, info['max_ttl'] + 1, "soon", "--60", "", None, 120.5, info['max_ttl'] + 0.5, [3600],
+                {"ttl": 3600}, True):
         res = requests.post(f"{API_BASE}/token.json", json={"client": "itest", "ttl": bad}, cookies=cookies)
         assert res.status_code == 400, bad
         assert res.json()['error'] == 'invalid_ttl', bad
     assert mint_token(cookies, ttl=60)['ttl'] == 60
     assert mint_token(cookies, ttl=info['max_ttl'])['ttl'] == info['max_ttl']
+    assert mint_token(cookies)['ttl'] == info['ttl']
+    assert mint_token(cookies, ttl="120")['ttl'] == 120  # As sent by a form
 
 @needs_tokens_off
 def test_tokens_disabled_refuses_token_actions():
