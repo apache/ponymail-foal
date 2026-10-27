@@ -15,7 +15,11 @@
  limitations under the License.
 */
 
-// Approval page for short-term session tokens (see server/plugins/tokens.py).
+// Page for short-term session tokens (see server/plugins/tokens.py).
+//
+// Opened without parameters (the "Session tokens" entry in the user menu) it lets
+// the logged-in user create a token to copy by hand, and list and revoke their
+// tokens - including ones minted from browser sessions they can no longer reach.
 //
 // An external client (CLI, MCP server, script) opens
 //   token.html?client=<name>&redirect_uri=http://127.0.0.1:<port>/<path>&state=<nonce>
@@ -127,7 +131,12 @@ function tokenDeny(req) {
 }
 
 function tokenAsk(req, info, creds) {
-    const ttl = Math.min(req.ttl || info.ttl, info.max_ttl);
+    const ttl = req.ttl || info.ttl;
+    if (ttl < info.min_ttl || ttl > info.max_ttl) {
+        tokenShow(tokenEl('p', {}, 'This request is not valid: the lifetime must be between ' +
+            tokenDuration(info.min_ttl) + ' and ' + tokenDuration(info.max_ttl) + '.'));
+        return;
+    }
     const target = req.redirect_uri
         ? tokenEl('p', {}, 'The token will be sent to a program on this computer listening on ',
             tokenEl('code', {}, req.target.host), '.')
@@ -146,6 +155,83 @@ function tokenAsk(req, info, creds) {
             tokenEl('button', { class: 'btn btn-success', onclick: () => tokenApprove(req) }, 'Approve'),
             tokenEl('button', { class: 'btn btn-default', onclick: () => tokenDeny(req) }, 'Deny'))
     );
+}
+
+function tokenDate(epoch) {
+    return new Date(epoch * 1000).toLocaleString();
+}
+
+function tokenRevoke(id, what) {
+    if (!window.confirm('Revoke ' + what + '? Programs using it will lose access straight away.')) return;
+    tokenApi('token.json', 'POST', { action: 'revoke', id: id }).then((json) => {
+        if (!json.okay) {
+            tokenShow(tokenEl('p', {}, 'Could not revoke: ' + (json.message || json.error)));
+            return;
+        }
+        tokenManage();
+    }).catch((e) => tokenShow(tokenEl('p', {}, 'Could not revoke: ' + e)));
+}
+
+function tokenCreateForm(info) {
+    const name = tokenEl('input', { type: 'text', class: 'form-control', maxlength: '64', value: 'manual' });
+    const lifetime = tokenEl('select', { class: 'form-control' });
+    for (const seconds of [600, 3600, 4 * 3600, 8 * 3600, 86400]) {
+        if (seconds < info.min_ttl || seconds > info.max_ttl) continue;
+        const opt = tokenEl('option', { value: String(seconds) }, tokenDuration(seconds));
+        if (seconds === info.ttl) opt.setAttribute('selected', 'selected');
+        lifetime.appendChild(opt);
+    }
+    return tokenEl('div', {},
+        tokenEl('h4', {}, 'Create a token'),
+        tokenEl('p', {}, 'Name (to recognise it later): '), name,
+        tokenEl('p', {}, 'Valid for: '), lifetime,
+        tokenEl('div', { class: 'buttons' },
+            tokenEl('button', {
+                class: 'btn btn-primary',
+                onclick: () => tokenApprove({ client: name.value || 'manual', ttl: parseInt(lifetime.value, 10) }),
+            }, 'Create token')));
+}
+
+function tokenList(tokens) {
+    if (!tokens.length) return tokenEl('p', {}, 'You have no active tokens.');
+    const table = tokenEl('table', { class: 'table' },
+        tokenEl('tr', {}, tokenEl('th', {}, 'Name'), tokenEl('th', {}, 'Created'), tokenEl('th', {}, 'Expires'),
+            tokenEl('th', {}, 'Created from'), tokenEl('th', {}, '')));
+    for (const t of tokens) {
+        table.appendChild(tokenEl('tr', {},
+            tokenEl('td', {}, t.client), tokenEl('td', {}, tokenDate(t.created)), tokenEl('td', {}, tokenDate(t.expires)),
+            tokenEl('td', {}, t.this_session ? 'this browser session' : 'another browser session'),
+            tokenEl('td', {}, tokenEl('button', {
+                class: 'btn btn-default btn-xs', onclick: () => tokenRevoke(t.id, 'the token "' + t.client + '"'),
+            }, 'Revoke'))));
+    }
+    return tokenEl('div', {}, table,
+        tokenEl('div', { class: 'buttons' },
+            tokenEl('button', { class: 'btn btn-danger', onclick: () => tokenRevoke('*', 'all your tokens') },
+                'Revoke all tokens')));
+}
+
+// The page opened from the user menu: create, list and revoke tokens
+function tokenManage() {
+    Promise.all([
+        tokenApi('token.lua?action=info', 'GET'),
+        tokenApi('token.json', 'POST', { action: 'list' }),
+    ]).then(([info, listing]) => {
+        if (!listing.okay) {
+            tokenShow(tokenEl('p', {}, 'Could not list your tokens: ' + (listing.message || listing.error)));
+            return;
+        }
+        tokenShow(
+            tokenEl('p', {}, 'A session token lets a script or tool read the archives as you, ' +
+                'without your browser cookie. It cannot send email.'),
+            tokenCreateForm(info),
+            tokenEl('h4', {}, 'Your tokens'),
+            tokenList(listing.tokens),
+            tokenEl('div', { class: 'warn' },
+                'Logging out revokes the tokens created from that browser session. ' +
+                'Tokens created from a browser you have since closed stay valid until they expire - ' +
+                'revoke them here.'));
+    }).catch((e) => tokenShow(tokenEl('p', {}, 'Could not contact the server: ' + e)));
 }
 
 function tokenInit() {
@@ -190,7 +276,11 @@ function tokenInit() {
                             'Log in')));
                 return;
             }
-            tokenAsk(req, info, creds);
+            if (q.has('client') || q.has('redirect_uri')) {
+                tokenAsk(req, info, creds);
+            } else {
+                tokenManage();
+            }
         })
         .catch((e) => tokenShow(tokenEl('p', {}, 'Could not contact the server: ' + e)));
 }

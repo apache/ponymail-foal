@@ -40,6 +40,30 @@ def test_raw_token_is_not_stored():
     assert all(token not in vars(r).values() for r in store.tokens.values())
 
 
+@pytest.mark.parametrize(
+    "ttl, max_ttl",
+    [(tokens.MIN_TTL, 7200), (600, 7200), (7200, 7200)],
+)
+def test_issue_accepts_ttl_in_range(ttl, max_ttl):
+    store = tokens.TokenStore()
+    _, record = store.issue("s", "c", "x", ttl, max_ttl)
+    assert record.expires - record.created == ttl
+
+
+@pytest.mark.parametrize(
+    "ttl, max_ttl",
+    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200), (tokens.DEFAULT_MAX_TTL + 1, None)],
+)
+def test_issue_rejects_ttl_out_of_range(ttl, max_ttl):
+    store = tokens.TokenStore()
+    with pytest.raises(ValueError):
+        if max_ttl is None:
+            store.issue("s", "c", "x", ttl)  # Default cap is DEFAULT_MAX_TTL
+        else:
+            store.issue("s", "c", "x", ttl, max_ttl)
+    assert not store.tokens
+
+
 def test_tokens_are_unique():
     store = tokens.TokenStore()
     issued = {store.issue("s", "c", "x", 60)[0] for _ in range(100)}
@@ -82,23 +106,35 @@ def test_revoke_session_only_hits_that_session():
     assert store.lookup(b1) is not None
 
 
-def test_revoke_id_is_scoped_to_session():
+def test_revoke_account_hits_every_session_of_that_account():
     store = tokens.TokenStore()
-    token, record = store.issue("a", "c", "x", 60)
+    a1, _ = store.issue("session-a", "cid-1", "x", 60)
+    b1, _ = store.issue("session-b", "cid-1", "x", 60)  # Same user, another (lost) browser session
+    other, _ = store.issue("session-c", "cid-2", "x", 60)
+    assert store.revoke_account("cid-1") == 2
+    assert store.lookup(a1) is None
+    assert store.lookup(b1) is None
+    assert store.lookup(other) is not None
+
+
+def test_revoke_id_is_scoped_to_account():
+    store = tokens.TokenStore()
+    token, record = store.issue("session-a", "cid-1", "x", 60)
     token_id = record.public()["id"]
-    assert not store.revoke_id("b", token_id)
-    assert not store.revoke_id("a", token_id[:4])  # too short to be unambiguous
+    assert not store.revoke_id("cid-2", token_id)
+    assert not store.revoke_id("cid-1", token_id[:4])  # too short to be unambiguous
     assert store.lookup(token) is not None
-    assert store.revoke_id("a", token_id)
+    assert store.revoke_id("cid-1", token_id)  # Works from any session of the same account
     assert store.lookup(token) is None
 
 
-def test_for_session_and_public_view():
+def test_for_account_and_public_view():
     store = tokens.TokenStore()
-    token, _ = store.issue("a", "c", "x", 60)
-    store.issue("b", "c", "y", 60)
-    listed = store.for_session("a")
-    assert len(listed) == 1
+    token, _ = store.issue("session-a", "cid-1", "x", 60)
+    store.issue("session-b", "cid-1", "y", 60)
+    store.issue("session-c", "cid-2", "z", 60)
+    listed = store.for_account("cid-1")
+    assert {r.client for r in listed} == {"x", "y"}
     public = listed[0].public()
     assert set(public) == {"id", "client", "created", "expires"}
     assert token not in public.values()

@@ -22,9 +22,9 @@ Mints, lists and revokes short-term session tokens (see plugins/tokens.py).
 
     action=info    - token support and lifetimes (no login needed)
     action=create  - mint a token for the current browser session (default action)
-    action=list    - list the tokens minted from the current browser session
+    action=list    - list the user's tokens, from whichever browser session minted them
     action=revoke  - revoke a token: the calling token itself when authenticated with one,
-                     otherwise `id=<token id>`, or `id=*` for all, from the current browser session
+                     otherwise `id=<token id>`, or `id=*` for all of the user's tokens
 """
 
 import json
@@ -68,7 +68,14 @@ async def process(
     action = indata.get("action", "create")
 
     if action == "info":
-        return reply(200, okay=True, enabled=config.enabled, ttl=config.ttl, max_ttl=config.max_ttl)
+        return reply(
+            200,
+            okay=True,
+            enabled=config.enabled,
+            ttl=config.ttl,
+            min_ttl=plugins.tokens.MIN_TTL,
+            max_ttl=config.max_ttl,
+        )
 
     if not config.enabled:
         return error(403, "tokens_disabled", "Session tokens are not enabled on this server.")
@@ -83,7 +90,7 @@ async def process(
     if session.token:
         if action != "revoke":
             return error(403, "token_not_allowed", "A session token cannot be used to manage session tokens.")
-        server.data.tokens.revoke_id(session.token.session_id, session.token.token_hash)
+        server.data.tokens.revoke_id(session.token.cid, session.token.token_hash)
         return reply(200, okay=True, revoked=1)
 
     if not session.credentials:
@@ -97,28 +104,39 @@ async def process(
                 return error(
                     400, "invalid_redirect_uri", "Tokens can only be handed to a loopback address with a port."
                 )
+        invalid_ttl = "ttl must be a number of seconds between %d and %d." % (plugins.tokens.MIN_TTL, config.max_ttl)
         try:
             ttl = int(indata.get("ttl") or config.ttl)
         except ValueError:
-            return error(400, "invalid_ttl", "ttl must be a number of seconds.")
-        ttl = max(plugins.tokens.MIN_TTL, min(ttl, config.max_ttl))
+            return error(400, "invalid_ttl", invalid_ttl)
         assert session.cid, "Logged in session without an account id"
-        token, record = server.data.tokens.issue(session.cookie, session.cid, indata.get("client", ""), ttl)
-        payload = {"okay": True, "token": token, "ttl": ttl, **record.public()}
+        try:
+            token, record = server.data.tokens.issue(
+                session.cookie, session.cid, indata.get("client", ""), ttl, config.max_ttl
+            )
+        except ValueError:
+            return error(400, "invalid_ttl", invalid_ttl)
+        payload = {"okay": True, "token": token, "ttl": record.expires - record.created, **record.public()}
         if redirect_uri:
             payload["redirect_uri"] = redirect_uri
         return reply(200, **payload)
 
     if action == "list":
-        return reply(200, okay=True, tokens=[r.public() for r in server.data.tokens.for_session(session.cookie)])
+        assert session.cid, "Logged in session without an account id"
+        tokens = [
+            {**r.public(), "this_session": r.session_id == session.cookie}
+            for r in server.data.tokens.for_account(session.cid)
+        ]
+        return reply(200, okay=True, tokens=tokens)
 
     if action == "revoke":
         token_id = str(indata.get("id") or "")
         if not token_id:
             return error(400, "missing_id", "Give the id of the token to revoke, or * for all of them.")
+        assert session.cid, "Logged in session without an account id"
         if token_id == "*":
-            return reply(200, okay=True, revoked=server.data.tokens.revoke_session(session.cookie))
-        revoked = server.data.tokens.revoke_id(session.cookie, token_id)
+            return reply(200, okay=True, revoked=server.data.tokens.revoke_account(session.cid))
+        revoked = server.data.tokens.revoke_id(session.cid, token_id)
         return reply(200, okay=True, revoked=int(revoked))
 
     return error(400, "unknown_action", "Unknown action.")

@@ -28,7 +28,11 @@ cookie:
 Properties:
 - Bound to the browser session that minted it. Logging out of that session
   (or the session expiring) invalidates every token minted from it.
-- Short-lived: expires after `tokens.ttl` seconds (capped by `tokens.max_ttl`).
+- Owned by the account. From any logged-in browser session the user can list
+  and revoke all of their tokens, including those minted from a session they
+  can no longer reach (a closed browser, another machine).
+- Short-lived: expires after `tokens.ttl` seconds, or a requested lifetime
+  between MIN_TTL and `tokens.max_ttl`; anything outside that range is refused.
 - Read-only: a token-authenticated request is refused by every endpoint that
   does not explicitly allow tokens (see `token_allowed` in plugins/server.py),
   so it cannot send email, use the management console or mint further tokens.
@@ -152,7 +156,12 @@ class TokenStore:
     def __init__(self):
         self.tokens = {}
 
-    def issue(self, session_id: str, cid: str, client: str, ttl: int) -> typing.Tuple[str, TokenRecord]:
+    def issue(
+        self, session_id: str, cid: str, client: str, ttl: int, max_ttl: int = DEFAULT_MAX_TTL
+    ) -> typing.Tuple[str, TokenRecord]:
+        """Issue a token. Raises ValueError unless MIN_TTL <= ttl <= max_ttl."""
+        if not MIN_TTL <= ttl <= max_ttl:
+            raise ValueError(f"ttl must be between {MIN_TTL} and {max_ttl} seconds")
         self.purge()
         now = int(time.time())
         token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTE_COUNT)
@@ -183,23 +192,31 @@ class TokenStore:
     def revoke(self, token: str) -> bool:
         return self.tokens.pop(hash_token(token), None) is not None
 
-    def revoke_id(self, session_id: str, token_id: str) -> bool:
-        """Revoke a token by its public id, but only if it belongs to the given session"""
+    def revoke_id(self, cid: str, token_id: str) -> bool:
+        """Revoke a token by its public id, but only if it belongs to the given account"""
         for token_hash, record in list(self.tokens.items()):
-            if record.session_id == session_id and token_hash.startswith(token_id) and len(token_id) >= 12:
+            if record.cid == cid and token_hash.startswith(token_id) and len(token_id) >= 12:
                 del self.tokens[token_hash]
                 return True
         return False
 
     def revoke_session(self, session_id: str) -> int:
-        doomed = [h for h, r in self.tokens.items() if r.session_id == session_id]
+        """Revoke every token minted from one browser session (used on logout)"""
+        return self._revoke_where(lambda r: r.session_id == session_id)
+
+    def revoke_account(self, cid: str) -> int:
+        """Revoke every token of an account, whichever browser session minted it"""
+        return self._revoke_where(lambda r: r.cid == cid)
+
+    def _revoke_where(self, predicate: typing.Callable[[TokenRecord], bool]) -> int:
+        doomed = [h for h, r in self.tokens.items() if predicate(r)]
         for token_hash in doomed:
             del self.tokens[token_hash]
         return len(doomed)
 
-    def for_session(self, session_id: str) -> typing.List[TokenRecord]:
+    def for_account(self, cid: str) -> typing.List[TokenRecord]:
         self.purge()
-        return [r for r in self.tokens.values() if r.session_id == session_id]
+        return [r for r in self.tokens.values() if r.cid == cid]
 
     def purge(self) -> None:
         now = int(time.time())

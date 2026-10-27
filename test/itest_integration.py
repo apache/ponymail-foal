@@ -607,7 +607,9 @@ def test_token_list_and_revoke_by_id():
     first = mint_token(cookies)
     second = mint_token(cookies)
     listed = requests.post(f"{API_BASE}/token.json", json={"action": "list"}, cookies=cookies).json()['tokens']
-    assert {t['id'] for t in listed} == {first['id'], second['id']}
+    mine = {t['id']: t for t in listed}
+    assert {first['id'], second['id']} <= set(mine)  # The list is per account, so earlier tests' tokens may show
+    assert mine[first['id']]['this_session'] and mine[second['id']]['this_session']
     assert all('token' not in t for t in listed)
     assert private_hits(headers=bearer(first['token'])) == 4
     assert private_hits(headers=bearer(second['token'])) == 4
@@ -625,6 +627,7 @@ def test_token_revoke_requires_id():
 @needs_tokens
 def test_token_revoke_all():
     cookies = get_cookies('user')
+    requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": "*"}, cookies=cookies)  # Clean slate
     first = mint_token(cookies)['token']
     second = mint_token(cookies)['token']
     assert private_hits(headers=bearer(first)) == 4
@@ -634,6 +637,42 @@ def test_token_revoke_all():
     assert private_hits(headers=bearer(first)) == 0
     assert private_hits(headers=bearer(second)) == 0
     assert private_hits(cookies=cookies) == 4  # The browser session itself is untouched
+
+@needs_tokens
+def test_token_revoke_from_another_session():
+    # The user closed the browser that minted a token, so cannot log that session out.
+    # Logging in again gives a new session, from which every token of the account can be listed and revoked.
+    lost = get_cookies('user')
+    token = mint_token(lost)
+    assert private_hits(headers=bearer(token['token'])) == 4
+    fresh = get_cookies('user')
+    listed = requests.post(f"{API_BASE}/token.json", json={"action": "list"}, cookies=fresh).json()['tokens']
+    entry = next(t for t in listed if t['id'] == token['id'])
+    assert entry['this_session'] is False
+    res = requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": "*"}, cookies=fresh)
+    assert res.json()['revoked'] >= 1
+    assert private_hits(headers=bearer(token['token'])) == 0
+    assert private_hits(cookies=lost) == 4  # Revoking tokens does not log out either browser session
+    assert private_hits(cookies=fresh) == 4
+
+@needs_tokens
+def test_token_revoke_by_id_cannot_touch_another_user():
+    token = mint_token(get_cookies('user'))
+    res = requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": token['id']},
+                        cookies=get_cookies('admin'))
+    assert res.json()['revoked'] == 0
+    assert private_hits(headers=bearer(token['token'])) == 4
+
+@needs_tokens
+def test_token_rejects_ttl_out_of_range():
+    cookies = get_cookies('user')
+    info = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()
+    for bad in (-1, 59, info['max_ttl'] + 1, "soon"):
+        res = requests.post(f"{API_BASE}/token.json", json={"client": "itest", "ttl": bad}, cookies=cookies)
+        assert res.status_code == 400, bad
+        assert res.json()['error'] == 'invalid_ttl', bad
+    assert mint_token(cookies, ttl=60)['ttl'] == 60
+    assert mint_token(cookies, ttl=info['max_ttl'])['ttl'] == info['max_ttl']
 
 @needs_tokens_off
 def test_tokens_disabled_refuses_token_actions():
