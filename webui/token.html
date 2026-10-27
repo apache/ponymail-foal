@@ -27,6 +27,9 @@ the License. -->
       #token_card .buttons { margin-top: 18px; text-align: center; }
       #token_card .buttons button { margin: 0 8px; min-width: 120px; }
       #token_value { font-family: monospace; word-break: break-all; }
+      #token_card table { font-size: 11pt; }
+      #token_card td, #token_card th { vertical-align: middle; }
+      #token_card td:last-child { text-align: right; white-space: nowrap; }
     </style>
   </head>
   <body style="margin: 0px;">
@@ -34,7 +37,7 @@ the License. -->
       <div class="row">
         <div class="col-md-12" style="text-align: center">
           <img src="images/logo.png" alt="Foal logo" style="width: 320px;"/><br/>
-          <h3>Session token request</h3>
+          <h3 id="token_heading">Session token request</h3>
           <div id="token_card">Checking your session, hang on...</div>
         </div>
       </div>

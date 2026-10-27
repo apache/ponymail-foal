@@ -63,7 +63,8 @@ function tokenShow(...children) {
 
 function tokenDuration(seconds) {
     if (seconds % 3600 === 0) return (seconds / 3600) + (seconds === 3600 ? ' hour' : ' hours');
-    return Math.round(seconds / 60) + ' minutes';
+    const minutes = Math.round(seconds / 60);
+    return minutes + (minutes === 1 ? ' minute' : ' minutes');
 }
 
 // Mirror of the server-side check: loopback IP literal, explicit port, no credentials.
@@ -116,7 +117,8 @@ function tokenApprove(req) {
                 ' header. Anyone holding it can read the archives as you until it expires.'),
             tokenEl('div', { class: 'buttons' },
                 tokenEl('button', { class: 'btn btn-primary', onclick: () => navigator.clipboard.writeText(json.token) },
-                    'Copy to clipboard'))
+                    'Copy to clipboard'),
+                tokenEl('a', { class: 'btn btn-default', href: 'token.html' }, 'Back to your tokens'))
         );
     }).catch((e) => tokenShow(tokenEl('p', {}, 'Could not create a token: ' + e)));
 }
@@ -158,7 +160,7 @@ function tokenAsk(req, info, creds) {
 }
 
 function tokenDate(epoch) {
-    return new Date(epoch * 1000).toLocaleString();
+    return new Date(epoch * 1000).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function tokenRevoke(id, what) {
@@ -202,7 +204,7 @@ function tokenList(tokens) {
     for (const t of tokens) {
         table.appendChild(tokenEl('tr', {},
             tokenEl('td', {}, t.client), tokenEl('td', {}, tokenDate(t.created)), tokenEl('td', {}, tokenDate(t.expires)),
-            tokenEl('td', {}, t.this_session ? 'this browser session' : 'another browser session'),
+            tokenEl('td', {}, t.this_session ? 'this browser' : 'another browser session'),
             tokenEl('td', {}, tokenEl('button', {
                 class: 'btn btn-default btn-xs', onclick: () => tokenRevoke(t.id, 'the token "' + t.client + '"'),
             }, 'Revoke'))));
@@ -215,6 +217,8 @@ function tokenList(tokens) {
 
 // The page opened from the user menu: create, list and revoke tokens
 function tokenManage() {
+    document.getElementById('token_heading').textContent = 'Session tokens';
+    document.title = 'Pony Mail - Session tokens';
     Promise.all([
         tokenApi('token.lua?action=info', 'GET'),
         tokenApi('token.json', 'POST', { action: 'list' }),
