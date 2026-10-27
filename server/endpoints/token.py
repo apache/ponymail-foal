@@ -56,7 +56,10 @@ def parse_ttl(value: typing.Any) -> typing.Optional[int]:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     if isinstance(value, str) and re.fullmatch(r"-?[0-9]+", value.strip()):
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:  # Too many digits for int() (sys.set_int_max_str_digits)
+            return None
     return None
 
 
