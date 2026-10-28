@@ -68,7 +68,7 @@ webui/
 ├── oauth.html                 # OAuth callback handler
 ├── js/
 │   ├── ponymail.js            # Built/concatenated JS (from source/)
-│   ├── config.js              # Client-side config (OAuth client IDs, API URL)
+│   ├── config.js              # Client-side config
 │   └── source/                # Individual JS source files (concatenated by build.sh)
 │       ├── build.sh           # Concatenation build script
 │       ├── search.js          # Search functionality

@@ -158,16 +158,13 @@ oauth:
 ~~~
 
 
-Currently, you will also need to enable or tweak your `webui/js/config.js` file to match your 
-choice of OAuth providers, though that is subject to change.
-
 ### Setting up Google OAuth
 To begin using Google OAuth, you must procure an OAUth2 client id from the 
 [Gooogle Developers Console](https://console.developers.google.com/apis/credentials/oauthclient/).
 Callback URL must be oauth.html in your webui installation.
 
 Once you have a `Client ID`, you should set it in `server/ponymail.yaml`  in the 
-`google_client_id` directive. You will also need to currently set it in `webui/js/config.js`.
+`google_client_id` directive.
 
 After this is done, OAuth should work with Google, and you may enable authoritativeness by adding 
 `googleapis.com` to the `authoritative_domains` section in `server/ponymail.yaml`.
@@ -180,9 +177,6 @@ Callback URL must be oauth.html in your webui installation.
 Once you have created your OAuth app, copy the client ID and client secret to your 
 `server/ponymail.yaml` oauth section, as `github_client_id` and `github_client_secret` 
 respectively.
-
-When you've done that, you must currently also edit `webui/js/config.js` and set the 
-`client_id` for GitHub to the correct value.
 
 ## Setting up web replies
 It is possible to reply to emails on a list via the web interface, provided you have enabled

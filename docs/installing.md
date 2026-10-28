@@ -292,9 +292,8 @@ provider setup (Google, GitHub, or generic OAuth).
 Quick checklist:
 1. Register an OAuth app with your provider
 2. Set `client_id` (and `client_secret` for GitHub) in `server/ponymail.yaml`
-3. Set the same `client_id` in `webui/js/config.js`
-4. Add your provider's domain to `authoritative_domains`
-5. Add admin email addresses to `admins` if you want management console access
+3. Add your provider's domain to `authoritative_domains`
+4. Add admin email addresses to `admins` if you want management console access
 
 ---
 
