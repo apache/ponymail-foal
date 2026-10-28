@@ -18,7 +18,6 @@ import argparse
 import importlib.util
 import logging
 import os.path
-import shutil
 import sys
 import yaml
 
@@ -401,12 +400,6 @@ debug:
             """
         % (dburl, dbname, genname, nonce or "~")
     )
-
-print("Copying sample JS config to config.js (if needed)...")
-if not os.path.exists("../site/js/config.js") and os.path.exists(
-    "../site/js/config.js.sample"
-):
-    shutil.copy("../site/js/config.js.sample", "../site/js/config.js")
 
 server_cfg  = "../server/ponymail.yaml"
 if not args.clobber and os.path.exists(server_cfg):
