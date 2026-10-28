@@ -138,13 +138,10 @@ docs/
 
 ```bash
 # Docker (easiest)
-git clone https://github.com/apache/incubator-ponymail-foal.git
-cd incubator-ponymail-foal
+git clone https://github.com/apache/ponymail-foal.git
+cd ponymail-foal
 docker compose build
 docker compose up
-# In another terminal:
-docker compose exec pmfoal bash -c 'cd tools; python3 setup.py --devel'
-docker compose exec pmfoal bash -c 'cd server; python3 main.py --testendpoints'
 # Browse to http://localhost:1080/
 ```
 

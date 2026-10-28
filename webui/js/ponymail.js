@@ -4215,7 +4215,7 @@ function search(query, date) {
     let header_body = document.getElementById('header_body');
     let header_messageid = document.getElementById('header_messageid');
     /*
-     * See https://github.com/apache/incubator-ponymail-foal/issues/266
+     * See https://github.com/apache/ponymail-foal/issues/266
      *
      * The newhref URL parameter values should have been encoded.
      * However changing this now might invalidate existing URLs.

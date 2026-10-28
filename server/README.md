@@ -26,7 +26,7 @@ authentication mechanism.
 
 
 ## How to run:
-See the [Installation documentation](https://github.com/apache/incubator-ponymail-foal/blob/master/INSTALL.md) 
+See the [Installation documentation](https://github.com/apache/ponymail-foal/blob/master/INSTALL.md) 
 for instructions on how to install Foal.
 
 Once followed, this should fire up a backend server on 127.0.0.1:8080. You can then proxy to 

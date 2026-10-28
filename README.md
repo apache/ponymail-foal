@@ -1,21 +1,21 @@
 # Apache Pony Mail Foal
-<img src="https://github.com/apache/incubator-ponymail-foal/blob/master/webui/images/foal.png" width="72" align="left"/>
+<img src="https://github.com/apache/ponymail-foal/blob/master/webui/images/foal.png" width="72" align="left"/>
 
 _Next-generation suite of services and tools for Apache Pony Mail_
 
-[![Linting](https://github.com/apache/incubator-ponymail-foal/actions/workflows/linting.yml/badge.svg)](https://github.com/apache/incubator-ponymail-foal/actions/workflows/linting.yml)
-[![Foal Type Tests](https://github.com/apache/incubator-ponymail-foal/actions/workflows/type-tests.yml/badge.svg)](https://github.com/apache/incubator-ponymail-foal/actions/workflows/type-tests.yml)
-[![Unit Tests](https://github.com/apache/incubator-ponymail-foal/actions/workflows/unittest.yml/badge.svg)](https://github.com/apache/incubator-ponymail-foal/actions/workflows/unittest.yml)
-[![Integration Tests](https://github.com/apache/incubator-ponymail-foal/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/apache/incubator-ponymail-foal/actions/workflows/integration-tests.yml)
+[![Linting](https://github.com/apache/ponymail-foal/actions/workflows/linting.yml/badge.svg)](https://github.com/apache/ponymail-foal/actions/workflows/linting.yml)
+[![Foal Type Tests](https://github.com/apache/ponymail-foal/actions/workflows/type-tests.yml/badge.svg)](https://github.com/apache/ponymail-foal/actions/workflows/type-tests.yml)
+[![Unit Tests](https://github.com/apache/ponymail-foal/actions/workflows/unittest.yml/badge.svg)](https://github.com/apache/ponymail-foal/actions/workflows/unittest.yml)
+[![Integration Tests](https://github.com/apache/ponymail-foal/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/apache/ponymail-foal/actions/workflows/integration-tests.yml)
 
 
 This repository aims to contain the next generation of Apache Pony Mail,
 a pure Python version of Apache Pony Mail with support for ElasticSearch 
 7.x and above.
 
-<img src="https://github.com/apache/incubator-ponymail-foal/blob/master/webui/images/foal-demo1.png" style="width: 95%"/>
+<img src="https://github.com/apache/ponymail-foal/blob/master/webui/images/foal-demo1.png" style="width: 95%"/>
 
-<img src="https://github.com/apache/incubator-ponymail-foal/blob/master/webui/images/foal-demo2.png" style="width: 95%"/>
+<img src="https://github.com/apache/ponymail-foal/blob/master/webui/images/foal-demo2.png" style="width: 95%"/>
 
 
 ## New features in Foal:

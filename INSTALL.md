@@ -47,7 +47,7 @@ You may need to update the requirements.txt files in tools/ and server/ accordin
 
 ## Installation steps:
 
-- Clone the Foal git repository to your machine: `git clone https://github.com/apache/incubator-ponymail-foal.git foal`
+- Clone the Foal git repository to your machine: `git clone https://github.com/apache/ponymail-foal.git foal`
 - Install the Python requirements for the setup:
 ~~~shell script
 cd foal/tools

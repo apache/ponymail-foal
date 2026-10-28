@@ -117,7 +117,7 @@ Foal superseded it
 ## Future: Git Tags and Releases
 
 The project does not currently use git tags for releases
-([#297](https://github.com/apache/incubator-ponymail-foal/issues/297)).
+([#297](https://github.com/apache/ponymail-foal/issues/297)).
 
 When formal releases are established, the expected process would be:
 

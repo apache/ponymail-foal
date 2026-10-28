@@ -95,7 +95,7 @@ curl http://localhost:9200/
 ## Step 2: Clone PonyMail Foal
 
 ```bash
-git clone https://github.com/apache/incubator-ponymail-foal.git /opt/ponymail
+git clone https://github.com/apache/ponymail-foal.git /opt/ponymail
 cd /opt/ponymail
 ```
 
