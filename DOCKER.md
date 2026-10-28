@@ -25,25 +25,29 @@ of the source checkout, i.e. where DockerFile and compose.yaml are located.
 
 Build Docker image
 ==================
-Checkout Ponymail Foal from Git:
+Checkout Pony Mail Foal from Git:
 
-```
-$ git clone https://github.com/apache/incubator-ponymail-foal.git ponymail-foal
+```shell
+$ git clone https://github.com/apache/ponymail-foal.git ponymail-foal
 $ cd ponymail-foal
 ```
 
-Start Docker (e.g. [on macOS] open ~/Applications/Docker.app). Build the image:
+Start Docker (e.g. [on macOS] open ~/Applications/Docker.app).
 
-```$ docker compose build```
+Build the image:
+
+```shell
+$ docker compose build
+```
 
 Resolve any issues (e.g., ensure Docker has access to the required directories) and rebuild.
 
-Start ElasticSearch and the main server
-=======================================
+Start ElasticSearch, httpd and the API
+======================================
 
 Open a new terminal session:
 
-```
+```shell
 $ cd ponymail-foal
 $ [MAIL_DATA=/path/to/mailboxes] docker compose up
 ```
@@ -52,39 +56,27 @@ If provided, the directory at MAIL_DATA is mapped onto /var/maildata
 This is to allow easy access to mailboxes on the host system, e.g. for importing.
 [If not provided, then the source code directory is mapped]
 
-To stop the server, either use `^C`, or issue the following in another terminal session:
+The ElasticSearch server and httpd server will be started.
 
-```$ docker compose stop```
+The ElasticSearch database will automatically be created if necessary.
 
-Setup the ElasticSearch database
-================================
+Then the PonyMail API server will be started.
 
-The following step only needs to be done once.
-(The output is cached under elastic/)
-The container must already be running.
+Stopping the server
+===================
 
-Open a new terminal session and start a shell in the container:
+To stop the server issue the following in another terminal session:
 
-```
-$ docker compose exec pmfoal bash
-# cd tools
-# python3 setup.py --devel
+```shell
+$ cd ponymail-foal
+$ docker compose down
 ```
 
-Or you can do it all in one command:
+This ensures that the container is shut down and removed.
+You can also use '^C' in the original terminal session,
+but that will leave the container intact, which may interfere with subsequent startups.
 
-```$ docker compose exec pmfoal bash -c 'cd tools; python3 setup.py --devel'```
-
-Or you can set up the database from the host.
-The container must be running, and the Python packages (as per tools/requirements.txt)
-must have been installed.
-
-```
-$ cd ponymail-foal; cd tools
-$ python3 setup.py --devel
-```
-
-You can then use archiver.py or import-mbox.py to populate the database.
+[You can use `docker compose down` to remove the contaier]
 
 Importing mbox files for testing
 ================================
@@ -92,7 +84,7 @@ Importing mbox files for testing
 To test existing mbox files, you can use the import-mbox.py script.
 You can download a publicly available file using this link:
 
-```
+```shell
 mkdir mbox-testdata
 cd mbox-testdata
 wget https://lists.apache.org/api/mbox.lua?list=dev&domain=community.apache.org
@@ -101,33 +93,23 @@ cd ..
 
 Then import it:
 
-```
+```shell
 $ tools/import-mbox.py --source mbox-testdata/dev_community_apache_org.mbox
 ```
 
 This will import the mbox file into the database.
 
-Start the Ponymail api server
-=============================
+Note that the script requires the Python modules noted in `tools/requirements.txt'
 
-Open a new terminal session start a shell in the container:
+You can also load the mbox files in the container:
 
-```
-$ docker compose exec pmfoal bash
-# cd server
-# python3 main.py --testendpoints
+```shell
+$ docker compose exec pmfoal tools/import-mbox.py --source /var/maildata/path-to-mbox
 ```
 
-Or you can combine them:
-
-```$ docker compose exec pmfoal bash -c 'cd server; python3 main.py --testendpoints'```
-
-Update config.js to allow local login
-=====================================
-
-If you wish to test functions that require log in, update config.js to enable the two logins.
-
-For testing email and admin functions, you may need to update server/ponymail.yaml
+This assumes that the mbox file is located under the path specified in the 
+MAIL_DATA environment variable used when starting the container.
+[If not provided, then the source folder is mapped to /var/maildata instead]
 
 Connect to the server
 =====================

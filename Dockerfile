@@ -56,4 +56,4 @@ RUN echo "network.host: 0.0.0.0\ndiscovery.type: single-node" >> /etc/elasticsea
 
 WORKDIR /var/www/ponymail
 
-CMD /etc/init.d/elasticsearch start; apache2ctl -DFOREGROUND
+CMD bash docker-start.sh
