@@ -176,6 +176,7 @@ See `docs/API.md` for the full reference and `server/openapi.yaml` for the forma
 - **Privacy model**: emails can be `private: true` (hidden from unauthenticated users). OAuth providers marked `authoritative` grant access to private lists. Admin users can hide/delete emails.
 - **Email IDs**: generated from DKIM signatures for collision resistance (see `tools/plugins/dkim_id.py`)
 - **Threading**: stored as `in-reply-to`/`references` in ES; thread tree constructed at query time. Known limitation: threading can be inconsistent (see GitHub issues #244, #304)
+- **Email Date**: emails are filed according to the Date: header, which can be inaccurate (see GitHub issue #157)
 
 ## Common Pitfalls
 
