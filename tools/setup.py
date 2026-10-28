@@ -112,7 +112,7 @@ parser.add_argument(
     "--clobber",
     dest="clobber",
     action="store_true",
-    help="Allow overwrite of ponymail.yaml & ../site/api/lib/config.lua (default: create *.tmp if either exists)",
+    help="Allow overwrite of ponymail.yaml and archiver.yaml (default: create *.tmp if the file exists)",
 )
 parser.add_argument("--dburl", dest="dburl", type=str, help="ES backend URL")
 parser.add_argument("--dbname", dest="dbname", type=str, help="ES DB prefix")
