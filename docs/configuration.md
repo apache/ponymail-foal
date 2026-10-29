@@ -187,6 +187,7 @@ the session cookie. See [API.md](API.md#tokenjson) for the flow.
 | `enabled` | boolean | `false` | Enable the `token` endpoint and `Authorization: Bearer` authentication |
 | `ttl` | integer | `3600` | Default token lifetime in seconds; must be between 60 and `max_ttl`, or the server refuses to start |
 | `max_ttl` | integer | `86400` | Upper bound for the lifetime a client may request, in seconds |
+| `max_per_user` | integer | `10` | Most live tokens one user may hold at once; creating another is refused until one is revoked or expires. Must be at least 1 |
 
 Tokens are bound to the browser session that created them: logging out of
 that session revokes them. Users can also list and revoke all of their tokens
@@ -201,6 +202,7 @@ tokens:
   enabled: true
   ttl: 3600
   max_ttl: 86400
+  max_per_user: 10
 ```
 
 ---

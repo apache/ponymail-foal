@@ -81,6 +81,7 @@ class TokenConfig:
     enabled: bool
     ttl: int
     max_ttl: int
+    max_per_user: int
 
     def __init__(self, subyaml: dict):
         # Short-term session tokens for external clients (see plugins/tokens.py). Off by default.
@@ -92,6 +93,9 @@ class TokenConfig:
                 "tokens.ttl must be between %d and tokens.max_ttl (%d) seconds, got %d"
                 % (plugins.tokens.MIN_TTL, self.max_ttl, self.ttl)
             )
+        self.max_per_user = int(subyaml.get("max_per_user", plugins.tokens.DEFAULT_MAX_PER_USER))
+        if self.max_per_user < 1:
+            raise ValueError("tokens.max_per_user must be at least 1, got %d" % self.max_per_user)
 
 
 class DBConfig:

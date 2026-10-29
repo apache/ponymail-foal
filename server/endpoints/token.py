@@ -88,6 +88,7 @@ async def process(
             ttl=config.ttl,
             min_ttl=plugins.tokens.MIN_TTL,
             max_ttl=config.max_ttl,
+            max_per_user=config.max_per_user,
         )
 
     if not config.enabled:
@@ -126,10 +127,16 @@ async def process(
         assert session.cid, "Logged in session without an account id"
         try:
             token, record = server.data.tokens.issue(
-                session.cookie, session.cid, indata.get("client", ""), ttl, config.max_ttl
+                session.cookie, session.cid, indata.get("client", ""), ttl, config.max_ttl, config.max_per_user
             )
         except ValueError:
             return error(400, "invalid_ttl", invalid_ttl)
+        except plugins.tokens.TooManyTokens:
+            return error(
+                429,
+                "too_many_tokens",
+                "You already have %d session tokens. Revoke one before creating another." % config.max_per_user,
+            )
         payload = {"okay": True, "token": token, "ttl": record.expires - record.created, **record.public()}
         if redirect_uri:
             payload["redirect_uri"] = redirect_uri
