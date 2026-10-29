@@ -492,6 +492,17 @@ def mint_token(cookies, **extra):
 def bearer(token):
     return {"Authorization": f"Bearer {token}"}
 
+def revoke_all_tokens(cookies):
+    return requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": "*"}, cookies=cookies)
+
+@pytest.fixture(autouse=True)
+def no_leftover_tokens(request):
+    # Tokens outlive the test that minted them; start each token test from none,
+    # so earlier tests never use up the per-user cap (tokens.max_per_user)
+    if TOKENS_ENABLED and request.node.name.startswith("test_token"):
+        for user in ('user', 'admin'):
+            revoke_all_tokens(get_cookies(user))
+
 def test_token_info():
     jzon = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()
     assert jzon['enabled'] is TOKENS_ENABLED  # Fails if the server's mode doesn't match PONYMAIL_TOKENS
@@ -639,12 +650,11 @@ def test_token_revoke_requires_id():
 @needs_tokens
 def test_token_revoke_all():
     cookies = get_cookies('user')
-    requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": "*"}, cookies=cookies)  # Clean slate
     first = mint_token(cookies)['token']
     second = mint_token(cookies)['token']
     assert private_hits(headers=bearer(first)) == 4
     assert private_hits(headers=bearer(second)) == 4
-    res = requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": "*"}, cookies=cookies)
+    res = revoke_all_tokens(cookies)
     assert res.json()['revoked'] == 2
     assert private_hits(headers=bearer(first)) == 0
     assert private_hits(headers=bearer(second)) == 0
@@ -690,6 +700,25 @@ def test_token_rejects_ttl_out_of_range():
     assert mint_token(cookies, ttl=info['max_ttl'])['ttl'] == info['max_ttl']
     assert mint_token(cookies)['ttl'] == info['ttl']
     assert mint_token(cookies, ttl="120")['ttl'] == 120  # As sent by a form
+
+@needs_tokens
+def test_token_limit_per_user():
+    cookies = get_cookies('user')
+    cap = requests.get(f"{API_BASE}/token.lua", params={"action": "info"}).json()['max_per_user']
+    held = [mint_token(cookies) for _ in range(cap)]
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "itest"}, cookies=cookies)
+    assert res.status_code == 429
+    assert res.json()['error'] == 'too_many_tokens'
+    # The cap is per user, across browser sessions, and does not touch the tokens already held
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "itest"}, cookies=get_cookies('user'))
+    assert res.status_code == 429
+    assert private_hits(headers=bearer(held[0]['token'])) == 4
+    mint_token(get_cookies('admin'))  # Other users are unaffected
+    # Revoking one makes room for one
+    requests.post(f"{API_BASE}/token.json", json={"action": "revoke", "id": held[0]['id']}, cookies=cookies)
+    mint_token(cookies)
+    res = requests.post(f"{API_BASE}/token.json", json={"client": "itest"}, cookies=cookies)
+    assert res.status_code == 429
 
 @needs_tokens_off
 def test_tokens_disabled_refuses_token_actions():

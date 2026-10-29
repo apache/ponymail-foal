@@ -353,12 +353,16 @@ POST /api/token.json
 | `redirect_uri` | string | no | Loopback URL the web UI hands the token to (`create`, see below); omit for manual copy |
 | `id` | string | for `revoke` from a browser session | Token id to revoke, or `*` for all of the user's tokens, whichever browser session created them (`revoke`, browser session only) |
 
-`info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "min_ttl": 60, "max_ttl": 86400}`.
+`info` needs no login and returns `{"okay": true, "enabled": true, "ttl": 3600, "min_ttl": 60, "max_ttl": 86400, "max_per_user": 10}`.
 `create`, `list` and `revoke` need a logged-in **browser session** (not a
 token). `create` and `revoke` must be sent as a POST; `list` only reads, so it
 also accepts GET (`GET /api/token.lua?action=list`). Requests with a foreign
 `Origin` header are refused. `revoke` sent with a `Bearer` token revokes that
 token.
+
+A user holds at most `tokens.max_per_user` live tokens (10 unless
+configured). `create` beyond that is refused with HTTP 429 and
+`too_many_tokens`; revoke a token, or wait for one to expire, to make room.
 
 `list` and `revoke` act on all of the user's tokens, not only those created
 from the calling browser session, so a user who closed a browser without
@@ -384,7 +388,7 @@ calling browser session created it). See
 The raw token is returned once and never again. Errors are returned as
 `{"okay": false, "error": "<code>", "message": "..."}` with codes
 `tokens_disabled`, `login_required`, `token_not_allowed`, `cross_origin`,
-`method_not_allowed`, `invalid_redirect_uri`, `invalid_ttl` and `missing_id`.
+`method_not_allowed`, `invalid_redirect_uri`, `invalid_ttl`, `too_many_tokens` and `missing_id`.
 
 #### Browser hand-off (`webui/token.html`)
 

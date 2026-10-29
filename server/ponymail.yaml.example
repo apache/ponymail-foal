@@ -77,3 +77,4 @@ oauth:
 #  enabled: true
 #  ttl:     3600      # default lifetime, seconds
 #  max_ttl: 86400     # longest lifetime a client may ask for, seconds
+#  max_per_user: 10   # most live tokens one user may hold at once

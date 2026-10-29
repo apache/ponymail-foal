@@ -31,6 +31,8 @@ Properties:
 - Owned by the account. From any logged-in browser session the user can list
   and revoke all of their tokens, including those minted from a session they
   can no longer reach (a closed browser, another machine).
+- Limited in number: an account holds at most `tokens.max_per_user` live tokens.
+  Creating one more is refused until the user revokes one or one expires.
 - Short-lived: expires after `tokens.ttl` seconds, or a requested lifetime
   between MIN_TTL and `tokens.max_ttl`; anything outside that range is refused.
 - Read-only: a token-authenticated request is refused by every endpoint that
@@ -54,9 +56,14 @@ MAX_REDIRECT_URI_LENGTH = 512  # Maximum accepted redirect URI length, in charac
 MIN_TTL = 60  # Shortest lifetime a client may request, in seconds
 DEFAULT_TTL = 3600  # Default token lifetime (tokens.ttl), in seconds
 DEFAULT_MAX_TTL = 86400  # Default hard cap on token lifetime (tokens.max_ttl), in seconds
+DEFAULT_MAX_PER_USER = 10  # Default cap on live tokens per account (tokens.max_per_user)
 # Loopback IP literals only: "localhost" is refused, as RFC 8252 section 8.3 recommends,
 # since it can be resolved to something other than the loopback interface.
 LOOPBACK_HOSTS = ("127.0.0.1", "::1")
+
+
+class TooManyTokens(Exception):
+    """The account already holds as many live tokens as it may"""
 
 
 class TokenRecord:
@@ -157,12 +164,22 @@ class TokenStore:
         self.tokens = {}
 
     def issue(
-        self, session_id: str, cid: str, client: str, ttl: int, max_ttl: int = DEFAULT_MAX_TTL
+        self,
+        session_id: str,
+        cid: str,
+        client: str,
+        ttl: int,
+        max_ttl: int = DEFAULT_MAX_TTL,
+        max_per_user: int = DEFAULT_MAX_PER_USER,
     ) -> typing.Tuple[str, TokenRecord]:
-        """Issue a token. Raises ValueError unless MIN_TTL <= ttl <= max_ttl."""
+        """
+        Issue a token. Raises ValueError unless MIN_TTL <= ttl <= max_ttl, and
+        TooManyTokens if the account already holds max_per_user live tokens.
+        """
         if not MIN_TTL <= ttl <= max_ttl:
             raise ValueError(f"ttl must be between {MIN_TTL} and {max_ttl} seconds")
-        self.purge()
+        if len(self.for_account(cid)) >= max_per_user:
+            raise TooManyTokens(f"an account can hold at most {max_per_user} tokens")
         now = int(time.time())
         token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTE_COUNT)
         record = TokenRecord(

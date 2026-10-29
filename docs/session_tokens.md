@@ -66,7 +66,7 @@ Only approve a request you started yourself, just now, from a tool you trust.
 
 | Event | Effect on tokens |
 |-------|------------------|
-| Token created | Valid for its lifetime: `tokens.ttl` seconds by default (3600). A client may ask for any lifetime from 60 seconds up to `tokens.max_ttl` (86400). A lifetime outside that range is refused, not adjusted. |
+| Token created | Valid for its lifetime: `tokens.ttl` seconds by default (3600). A client may ask for any lifetime from 60 seconds up to `tokens.max_ttl` (86400). A lifetime outside that range is refused, not adjusted. You can hold at most `tokens.max_per_user` live tokens (10); creating another is refused until you revoke one or one expires. |
 | Lifetime ends | The token stops working. Nothing needs to be done. |
 | The token revokes itself (`token.json` with `action=revoke`, or `preferences` with `logout`, sent with the token) | That token stops working. The browser session it came from is not affected. |
 | You log out of the browser session that created it | Every token created from that session stops working. |

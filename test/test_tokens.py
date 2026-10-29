@@ -66,7 +66,7 @@ def test_issue_rejects_ttl_out_of_range(ttl, max_ttl):
 
 def test_tokens_are_unique():
     store = tokens.TokenStore()
-    issued = {store.issue("s", "c", "x", 60)[0] for _ in range(100)}
+    issued = {store.issue("s", "c", "x", 60, max_per_user=100)[0] for _ in range(100)}
     assert len(issued) == 100
 
 
@@ -138,6 +138,24 @@ def test_for_account_and_public_view():
     public = listed[0].public()
     assert set(public) == {"id", "client", "created", "expires"}
     assert token not in public.values()
+
+
+def test_issue_refuses_more_than_max_per_user():
+    store = tokens.TokenStore()
+    first, _ = store.issue("session-a", "cid-1", "x", 60, max_per_user=2)
+    store.issue("session-b", "cid-1", "x", 60, max_per_user=2)  # The cap counts every session of the account
+    with pytest.raises(tokens.TooManyTokens):
+        store.issue("session-a", "cid-1", "x", 60, max_per_user=2)
+    store.issue("session-a", "cid-2", "x", 60, max_per_user=2)  # Other accounts have their own allowance
+    assert store.revoke(first)
+    store.issue("session-a", "cid-1", "x", 60, max_per_user=2)  # Revoking one makes room
+
+
+def test_expired_tokens_do_not_count_towards_max_per_user():
+    store = tokens.TokenStore()
+    _, record = store.issue("s", "cid-1", "x", 60, max_per_user=1)
+    record.expires = int(time.time()) - 1
+    store.issue("s", "cid-1", "x", 60, max_per_user=1)
 
 
 @pytest.mark.parametrize(
