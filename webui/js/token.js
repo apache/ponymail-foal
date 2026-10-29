@@ -100,6 +100,10 @@ function tokenApprove(req) {
     tokenApi('token.json', 'POST', body).then((json) => {
         if (!json.okay) {
             tokenShow(tokenEl('p', {}, 'Could not create a token: ' + (json.message || json.error)));
+            if (!req.redirect_uri) {  // Manual request: the token list is where to revoke one and retry
+                document.getElementById('token_card').appendChild(tokenEl('div', { class: 'buttons' },
+                    tokenEl('a', { class: 'btn btn-default', href: 'token.html' }, 'Back to your tokens')));
+            }
             return;
         }
         if (json.redirect_uri) {
@@ -231,7 +235,7 @@ function tokenManage() {
             tokenEl('p', {}, 'A session token lets a script or tool read the archives as you, ' +
                 'without your browser cookie. It cannot send email.'),
             tokenCreateForm(info),
-            tokenEl('h4', {}, 'Your tokens'),
+            tokenEl('h4', {}, 'Your tokens (' + listing.tokens.length + ' of at most ' + info.max_per_user + ')'),
             tokenList(listing.tokens),
             tokenEl('div', { class: 'warn' },
                 'Logging out revokes the tokens created from that browser session. ' +
