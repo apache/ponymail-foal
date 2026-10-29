@@ -29,16 +29,20 @@ import plugins.offloader
 
 class Endpoint:
     exec: typing.Callable
+    token_allowed: bool  # May be called with a session token; off unless the endpoint opts in
 
-    def __init__(self, executor):
+    def __init__(self, executor, token_allowed: bool = False):
         self.exec = executor
+        self.token_allowed = token_allowed
 
 
 class StreamingEndpoint:
     exec: typing.Callable
+    token_allowed: bool  # May be called with a session token; off unless the endpoint opts in
 
-    def __init__(self, executor):
+    def __init__(self, executor, token_allowed: bool = False):
         self.exec = executor
+        self.token_allowed = token_allowed
 
 
 class BaseServer:

@@ -26,6 +26,7 @@ import aiohttp.web
 
 import plugins.database
 import plugins.server
+import plugins.tokens
 import copy
 
 FOAL_MAX_SESSION_AGE = 86400 * 7  # Max 1 week between visits before voiding a session
@@ -72,10 +73,12 @@ class SessionObject:
     remote: str
     host: str
     server: plugins.server.BaseServer
+    token: typing.Optional[plugins.tokens.TokenRecord]  # Set when authenticated via a session token
 
     def __init__(self, server: plugins.server.BaseServer, **kwargs):
         self.database = None
         self.server = server
+        self.token = None
         self.created = int(time.time())
         self.host = "??"
         self.remote = "??"
@@ -94,9 +97,36 @@ class SessionObject:
 async def get_session(
     server: plugins.server.BaseServer, request: aiohttp.web.BaseRequest
 ) -> SessionObject:
+    """
+    Resolve the session for a request. A request carrying an `Authorization: Bearer pmt_...`
+    session token is authenticated via that token only; cookies are ignored for it.
+    """
+    bearer = None
+    if server.config.tokens.enabled:
+        bearer = plugins.tokens.bearer_from_header(request.headers.get("authorization"))
+    if not bearer:
+        return await _get_session(server, request, _session_id_from_cookie(request))
+
+    record = server.data.tokens.lookup(bearer)
+    if not record:
+        return await _get_session(server, request, None)  # Unknown or expired token: anonymous
+    # Always work on a copy: the session may be the very object held in the in-memory
+    # session cache, which must never see the token marker or the revocation below.
+    session = copy.copy(await _get_session(server, request, record.session_id))
+    # The token is only as good as the session it was minted from. If that session has
+    # gone away (logout, expiry) or now belongs to someone else, the token dies with it.
+    if session.cookie != record.session_id or not session.credentials or session.cid != record.cid:
+        server.data.tokens.revoke(bearer)
+        session.credentials = None
+        session.cid = None
+        session.cookie = str(uuid.uuid4())
+        return session
+    session.token = record
+    return session
+
+
+def _session_id_from_cookie(request: aiohttp.web.BaseRequest) -> typing.Optional[str]:
     session_id = None
-    session = None
-    now = int(time.time())
     if request.headers.get("cookie"):
         for cookie_header in request.headers.getall("cookie"):
             cookies: http.cookies.SimpleCookie = http.cookies.SimpleCookie(
@@ -107,6 +137,14 @@ async def get_session(
                 if not all(c in "abcdefg1234567890-" for c in session_id):
                     session_id = None
                 break
+    return session_id
+
+
+async def _get_session(
+    server: plugins.server.BaseServer, request: aiohttp.web.BaseRequest, session_id: typing.Optional[str]
+) -> SessionObject:
+    session = None
+    now = int(time.time())
 
     # Do we have the session in local memory?
     if session_id and session_id in server.data.sessions:

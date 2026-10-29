@@ -23,6 +23,10 @@ ui:
   mgmtconsole:     true # enable email admin
   true_gdpr:       true # fully delete emails instead of marking them deleted
 
+# Short-term session tokens for external clients; see docs/session_tokens.md
+tokens:
+  enabled: true
+
 # Fill in OAuth data as needed
 oauth:
   # Details of providers to be shown by the front end

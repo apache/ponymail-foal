@@ -27,6 +27,7 @@
 
 - [User Guide](user_guide.md) — Browse, search, and reply to mailing list archives
 - [Search Syntax](search.md) — Query language reference
+- [Session Tokens](session_tokens.md) — Let scripts and tools read the archives as you
 
 ## Administration
 

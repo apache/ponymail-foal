@@ -82,9 +82,21 @@ async def process(
             prefs["login"]["credentials"]["admin"] = True
             if server.config.ui.fully_delete:  # Needed by the UI
                 prefs["login"]["credentials"]["fully_delete"] = True
+        if session.token:
+            prefs["login"]["token"] = session.token.public()
+        elif server.config.tokens.enabled:  # Lets the UI offer the "Session tokens" menu entry
+            prefs["login"]["tokens_enabled"] = True
 
     # Logging out??
     if indata.get("logout"):
+        # A session token logging out only revokes itself, never the browser session behind it
+        if session.token:
+            server.data.tokens.revoke_id(session.token.cid, session.token.token_hash)
+            return {"okay": True}
+
+        # Tokens minted from this session die with it
+        server.data.tokens.revoke_session(session.cookie)
+
         # Remove session from ElasticSearch
         await plugins.session.remove_session(session)
 
@@ -105,4 +117,4 @@ async def process(
 
 
 def register(_server: plugins.server.BaseServer):
-    return plugins.server.Endpoint(process)
+    return plugins.server.Endpoint(process, token_allowed=True)

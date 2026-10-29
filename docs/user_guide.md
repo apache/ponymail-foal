@@ -92,7 +92,14 @@ custom provider like ASF OAuth).
 ### Logging Out
 
 Click the profile icon again and select "Log out". Your session cookie
-is invalidated.
+is invalidated, along with any session tokens created from that session.
+
+### Session Tokens
+
+If the server enables them, the user menu has a **Session tokens** entry.
+There you can create a short-lived, read-only token for a script or tool,
+see all your active tokens, and revoke them, including tokens created from
+a browser you have since closed. See [Session Tokens](session_tokens.md).
 
 ---
 
