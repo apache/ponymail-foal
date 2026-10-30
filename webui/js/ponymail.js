@@ -16,7 +16,7 @@
 */
 // THIS IS AN AUTOMATICALLY COMBINED FILE. PLEASE EDIT THE source/ FILES!
 
-const PONYMAIL_REVISION = '6a1de18';
+const PONYMAIL_REVISION = '806d85c';
 
 
 /******************************************
@@ -811,9 +811,12 @@ function compose_email(replyto, list) {
     form.push(new HTML('b', {}, "Reply:"));
     form.push(new HTML('br'));
     let body = new HTML('textarea', {
+        wrap: 'soft',
         style: {
             width: '90%',
-            minHeight: '400px'
+            minHeight: '400px',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere'
         },
         id: 'composer_body'
     }, eml_body);
