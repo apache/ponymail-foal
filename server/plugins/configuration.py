@@ -41,6 +41,7 @@ class UIConfig:
     mgmt_enabled: bool
     focus_domain: str
     fully_delete: bool
+    social_terms: list
 
     def __init__(self, subyaml: dict):
         self.wordcloud = bool(subyaml.get("wordcloud", False))
@@ -55,6 +56,12 @@ class UIConfig:
         self.fully_delete = bool(subyaml.get("allow_delete", False))  # Whether to enforce full expunging of deleted emails
         # Default to all lists, "*". Use "" for host. Wildcard subdomain globs also supported
         self.focus_domain = subyaml.get("focus_domain", "*")
+        # Whole words/terms that count as an upvote when social stats are requested.
+        # Set to an empty list in yaml to disable the social stats feature entirely.
+        social_terms = subyaml.get("social_terms", ["+1"]) or []  # An empty/null list disables it
+        if isinstance(social_terms, str):  # A single term may be given as a plain string
+            social_terms = [social_terms]
+        self.social_terms = [str(term).strip() for term in social_terms if str(term).strip()]
 
 
 class OAuthConfig:

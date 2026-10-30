@@ -21,6 +21,8 @@ ui:
   traceback:       true
   mgmtconsole:     true # enable email admin
   true_gdpr:       true # fully delete emails instead of marking them deleted
+  social_terms:            # whole words/terms counted as an upvote when social stats are requested;
+    - "+1"                 # matches in quoted text (lines starting with >) are ignored. Empty list disables it
 
 # Fill in OAuth data as needed
 oauth:
