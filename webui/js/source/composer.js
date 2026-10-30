@@ -144,9 +144,12 @@ function compose_email(replyto, list) {
     form.push(new HTML('b', {}, "Reply:"));
     form.push(new HTML('br'));
     let body = new HTML('textarea', {
+        wrap: 'soft',
         style: {
             width: '90%',
-            minHeight: '400px'
+            minHeight: '400px',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere'
         },
         id: 'composer_body'
     }, eml_body);
