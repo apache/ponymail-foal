@@ -16,7 +16,7 @@
 */
 // THIS IS AN AUTOMATICALLY COMBINED FILE. PLEASE EDIT THE source/ FILES!
 
-const PONYMAIL_REVISION = 'ee25ce7';
+const PONYMAIL_REVISION = '17af8f0';
 
 
 /******************************************
@@ -144,12 +144,19 @@ async function async_snap(error) {
     let msg = await error.text();
     msg = msg.replace(/<.*?>/g, ""); // strip HTML tags
     if (error.status === 404) {
-        msg += "\n\nYou may need to be logged in with additional permissions in order to view this resource.";
+        msg += "\n\nYou may need to be logged in with specific credentials in order to view this resource.";
         if (pm_config.perm_error_postface) {
             msg += pm_config.perm_error_postface;
         }
     }
     modal("An error occured", "An error code %u occured while trying to fetch %s:\n%s".format(error.status, error.url, msg), "error");
+    if (error.status === 404) {
+        let text = document.getElementById('modal_text');
+        text.inject(new HTML('br'));
+        text.inject(new HTML('a', {
+            href: 'oauth.html'
+        }, "Click here to log in via OAuth"));
+   }
 }
 
 
@@ -4271,7 +4278,7 @@ function search(query, date) {
     let header_body = document.getElementById('header_body');
     let header_messageid = document.getElementById('header_messageid');
     /*
-     * See https://github.com/apache/incubator-ponymail-foal/issues/266
+     * See https://github.com/apache/ponymail-foal/issues/266
      *
      * The newhref URL parameter values should have been encoded.
      * However changing this now might invalidate existing URLs.

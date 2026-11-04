@@ -192,4 +192,4 @@ There is no rate limiting on the API. However, be respectful:
 
 - [API.md](API.md) — Full endpoint reference with response schemas
 - [search.md](search.md) — Search query syntax
-- GitHub issue [#312](https://github.com/apache/incubator-ponymail-foal/issues/312) — API token support (not yet implemented)
+- GitHub issue [#312](https://github.com/apache/ponymail-foal/issues/312) — API token support (not yet implemented)

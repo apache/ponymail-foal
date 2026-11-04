@@ -19,7 +19,6 @@ services:
   pmfoal:
     image: pmfoal
     build: .
-# Port 1080 must agree with the oauth_portal user and admin entries in config.js
 # Expose port 9200 to give access to ElasticSearch from the host
     ports:
       - "1080:80"

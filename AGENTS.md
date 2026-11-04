@@ -68,7 +68,7 @@ webui/
 ├── oauth.html                 # OAuth callback handler
 ├── js/
 │   ├── ponymail.js            # Built/concatenated JS (from source/)
-│   ├── config.js              # Client-side config (OAuth client IDs, API URL)
+│   ├── config.js              # Client-side config
 │   └── source/                # Individual JS source files (concatenated by build.sh)
 │       ├── build.sh           # Concatenation build script
 │       ├── search.js          # Search functionality
@@ -138,13 +138,10 @@ docs/
 
 ```bash
 # Docker (easiest)
-git clone https://github.com/apache/incubator-ponymail-foal.git
-cd incubator-ponymail-foal
+git clone https://github.com/apache/ponymail-foal.git
+cd ponymail-foal
 docker compose build
 docker compose up
-# In another terminal:
-docker compose exec pmfoal bash -c 'cd tools; python3 setup.py --devel'
-docker compose exec pmfoal bash -c 'cd server; python3 main.py --testendpoints'
 # Browse to http://localhost:1080/
 ```
 
@@ -179,6 +176,7 @@ See `docs/API.md` for the full reference and `server/openapi.yaml` for the forma
 - **Privacy model**: emails can be `private: true` (hidden from unauthenticated users). OAuth providers marked `authoritative` grant access to private lists. Admin users can hide/delete emails.
 - **Email IDs**: generated from DKIM signatures for collision resistance (see `tools/plugins/dkim_id.py`)
 - **Threading**: stored as `in-reply-to`/`references` in ES; thread tree constructed at query time. Known limitation: threading can be inconsistent (see GitHub issues #244, #304)
+- **Email Date**: emails are filed according to the Date: header, which can be inaccurate (see GitHub issue #157)
 
 ## Common Pitfalls
 

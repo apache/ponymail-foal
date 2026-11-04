@@ -1,0 +1,71 @@
+# This is a version of ponyail.yaml suitable for use with docker
+
+server:
+  port: 8080             # Port to bind to
+  bind: 127.0.0.1        # IP to bind to - typically 127.0.0.1 for localhost or 0.0.0.0 for all IPs
+
+
+database:
+  dburl:     http://localhost:9200/   # The URL of the ElasticSearch database
+  db_prefix: ponymail                 # DB prefix, usually 'ponymail'
+  max_hits:  15000                    # Maximum number of emails to process in a search
+  pool_size: 15                       # number of connections for async queries
+  max_lists: 8192                     # max number of lists to allow for
+
+tasks:
+  refresh_rate:  150                  # Background indexer run interval, in seconds
+
+ui:
+  wordcloud:       true
+  mailhost:        localhost # domain[:port] - default port is 25
+  sender_domains:  "*" # space separated
+  traceback:       true
+  mgmtconsole:     true # enable email admin
+  true_gdpr:       true # fully delete emails instead of marking them deleted
+
+# Fill in OAuth data as needed
+oauth:
+  # Details of providers to be shown by the front end
+  # Note that there should be a corresponding icon at images/ouath_<key>.png
+  providers:
+    # apache:
+    #   name:           Apache OAuth
+    #   oauth_portal:   https://oauth.apache.org/
+    #   .oauth_url:     https://oauth.apache.org/token
+    #   fullname_key:   fullname # does not appear to be used
+    #   email_key:      email
+    # google:
+    #     name:         Google OAuth
+    #     oauth_portal: https://accounts.google.com/o/oauth2/auth
+    #     fullname_key: name # does not appear to be used
+    #     email_key:    email
+    #     client_id:    foo-bar.apps.googleusercontent.com
+    # github:
+    #     name:         GitHub OAuth
+    #     oauth_portal: https://github.com/login/oauth/authorize
+    #     client_id:    your-client-id-here
+    #     scope:        user:email
+    #     construct:    true # encode all the above keys
+# Test logins
+    user:
+      name:           Test Auth User
+      oauth_portal:   http://localhost:1080/api/testauth
+      .oauth_url:     http://localhost/api/testauth
+    admin:
+      name:           Test Auth Admin
+      oauth_portal:   http://localhost:1080/api/testauth
+      .oauth_url:     http://localhost/api/testauth
+# If using OAuth, set the authoritative domains here. These are the OAuth domains that 
+# will provide access to private emails.
+# N.B. This must be defined as an array (or omitted)
+authoritative_domains:
+    - localhost        # for local testing of sending email
+#    - googleapis.com  # OAuth via google is authoritative
+#    - github.com      # GitHub OAuth is authoritative
+# Set up users with administrative permission
+# N.B. This must be defined as an array (or omitted)
+admins:
+    - localtest@apache.org
+#  google_client_id:     ~
+#  github_client_id:     ~
+#  github_client_secret: ~

@@ -25,7 +25,7 @@ or a production deployment.
 ## Quick Start (Docker)
 
 ```bash
-git clone https://github.com/apache/incubator-ponymail-foal.git ponymail-foal
+git clone https://github.com/apache/ponymail-foal.git ponymail-foal
 cd ponymail-foal
 docker compose build
 docker compose up
@@ -71,7 +71,7 @@ For Docker details (env vars, volume mounts, test auth), see [DOCKER.md](../DOCK
 ### Install
 
 ```bash
-git clone https://github.com/apache/incubator-ponymail-foal.git /opt/ponymail-foal
+git clone https://github.com/apache/ponymail-foal.git /opt/ponymail-foal
 cd /opt/ponymail-foal/tools
 pip install -r requirements.txt
 python3 setup.py          # Interactive — creates OpenSearch indices + ponymail.yaml

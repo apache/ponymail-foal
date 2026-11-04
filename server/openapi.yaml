@@ -2,7 +2,7 @@
 openapi: 3.0.0
 info:
   version: 1.0.0
-  description: This is the API specifications for interacting with the Pony Mail (Foal) server backend
+  description: This is the API specification for interacting with the Pony Mail (Foal) server backend
   title: Apache Pony Mail Foal API
   license:
     name: Apache 2.0
