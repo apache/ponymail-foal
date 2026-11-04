@@ -126,9 +126,7 @@ async def process(
             return error(400, "invalid_ttl", invalid_ttl)
         assert session.cid, "Logged in session without an account id"
         try:
-            token, record = server.data.tokens.issue(
-                session.cookie, session.cid, indata.get("client", ""), ttl, config.max_ttl, config.max_per_user
-            )
+            token, record = server.data.tokens.issue(session.cookie, session.cid, indata.get("client", ""), ttl, config)
         except ValueError:
             return error(400, "invalid_ttl", invalid_ttl)
         except plugins.tokens.TooManyTokens:

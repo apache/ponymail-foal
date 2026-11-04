@@ -16,15 +16,24 @@
 # limitations under the License.
 
 import time
+import types
 
 import pytest
 
 from server.plugins import tokens
 
 
+def token_config(max_ttl=tokens.DEFAULT_MAX_TTL, max_per_user=tokens.DEFAULT_MAX_PER_USER):
+    """Stands in for plugins.configuration.TokenConfig, which needs the server on sys.path"""
+    return types.SimpleNamespace(max_ttl=max_ttl, max_per_user=max_per_user)
+
+
+CONFIG = token_config()
+
+
 def test_issue_and_lookup():
     store = tokens.TokenStore()
-    token, record = store.issue("session-1", "cid-1", "my client", 3600)
+    token, record = store.issue("session-1", "cid-1", "my client", 3600, CONFIG)
     assert token.startswith(tokens.TOKEN_PREFIX)
     assert store.lookup(token) is record
     assert record.session_id == "session-1"
@@ -35,7 +44,7 @@ def test_issue_and_lookup():
 
 def test_raw_token_is_not_stored():
     store = tokens.TokenStore()
-    token, _ = store.issue("s", "c", "x", 60)
+    token, _ = store.issue("s", "c", "x", 60, CONFIG)
     assert token not in store.tokens
     assert all(token not in vars(r).values() for r in store.tokens.values())
 
@@ -46,21 +55,18 @@ def test_raw_token_is_not_stored():
 )
 def test_issue_accepts_ttl_in_range(ttl, max_ttl):
     store = tokens.TokenStore()
-    _, record = store.issue("s", "c", "x", ttl, max_ttl)
+    _, record = store.issue("s", "c", "x", ttl, token_config(max_ttl))
     assert record.expires - record.created == ttl
 
 
 @pytest.mark.parametrize(
     "ttl, max_ttl",
-    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200), (tokens.DEFAULT_MAX_TTL + 1, None)],
+    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200)],
 )
 def test_issue_rejects_ttl_out_of_range(ttl, max_ttl):
     store = tokens.TokenStore()
     with pytest.raises(ValueError):
-        if max_ttl is None:
-            store.issue("s", "c", "x", ttl)  # Default cap is DEFAULT_MAX_TTL
-        else:
-            store.issue("s", "c", "x", ttl, max_ttl)
+        store.issue("s", "c", "x", ttl, token_config(max_ttl))
     assert not store.tokens
 
 
@@ -69,39 +75,42 @@ def test_issue_rejects_ttl_out_of_range(ttl, max_ttl):
     [(tokens.MIN_TTL, 7200), (600, 7200), (7200, 7200)],
 )
 def test_record_accepts_ttl_in_range(ttl, max_ttl):
-    record = tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, max_ttl)
+    record = tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, token_config(max_ttl))
     assert record.created == 1000
     assert record.expires == 1000 + ttl
 
 
 @pytest.mark.parametrize(
     "ttl, max_ttl",
-    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200), (tokens.DEFAULT_MAX_TTL + 1, None)],
+    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200)],
 )
 def test_record_rejects_ttl_out_of_range(ttl, max_ttl):
     with pytest.raises(ValueError):
-        if max_ttl is None:
-            tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl)  # Default cap is DEFAULT_MAX_TTL
-        else:
-            tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, max_ttl)
+        tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, token_config(max_ttl))
 
 
-def test_issue_reports_bad_ttl_before_token_limit():
+def test_issue_checks_token_limit_before_creating_a_record(monkeypatch):
     store = tokens.TokenStore()
-    store.issue("s", "c", "x", 60, max_per_user=1)
-    with pytest.raises(ValueError):
-        store.issue("s", "c", "x", tokens.MIN_TTL - 1, max_per_user=1)
+    config = token_config(max_per_user=1)
+    store.issue("s", "c", "x", 60, config)
+
+    def no_record(*args, **kwargs):
+        raise AssertionError("TokenRecord created for an account at its limit")
+
+    monkeypatch.setattr(tokens, "TokenRecord", no_record)
+    with pytest.raises(tokens.TooManyTokens):
+        store.issue("s", "c", "x", 60, config)
 
 
 def test_tokens_are_unique():
     store = tokens.TokenStore()
-    issued = {store.issue("s", "c", "x", 60, max_per_user=100)[0] for _ in range(100)}
+    issued = {store.issue("s", "c", "x", 60, token_config(max_per_user=100))[0] for _ in range(100)}
     assert len(issued) == 100
 
 
 def test_lookup_unknown_and_malformed():
     store = tokens.TokenStore()
-    store.issue("s", "c", "x", 60)
+    store.issue("s", "c", "x", 60, CONFIG)
     assert store.lookup("pmt_doesnotexist") is None
     assert store.lookup("not-a-token") is None
     assert store.lookup("pmt_") is None
@@ -110,7 +119,7 @@ def test_lookup_unknown_and_malformed():
 
 def test_expired_tokens_are_rejected_and_purged():
     store = tokens.TokenStore()
-    token, record = store.issue("s", "c", "x", 60)
+    token, record = store.issue("s", "c", "x", 60, CONFIG)
     record.expires = int(time.time()) - 1
     assert store.lookup(token) is None
     assert not store.tokens
@@ -118,7 +127,7 @@ def test_expired_tokens_are_rejected_and_purged():
 
 def test_revoke():
     store = tokens.TokenStore()
-    token, _ = store.issue("s", "c", "x", 60)
+    token, _ = store.issue("s", "c", "x", 60, CONFIG)
     assert store.revoke(token)
     assert store.lookup(token) is None
     assert not store.revoke(token)
@@ -126,9 +135,9 @@ def test_revoke():
 
 def test_revoke_session_only_hits_that_session():
     store = tokens.TokenStore()
-    a1, _ = store.issue("a", "c", "x", 60)
-    a2, _ = store.issue("a", "c", "x", 60)
-    b1, _ = store.issue("b", "c", "x", 60)
+    a1, _ = store.issue("a", "c", "x", 60, CONFIG)
+    a2, _ = store.issue("a", "c", "x", 60, CONFIG)
+    b1, _ = store.issue("b", "c", "x", 60, CONFIG)
     assert store.revoke_session("a") == 2
     assert store.lookup(a1) is None
     assert store.lookup(a2) is None
@@ -137,9 +146,9 @@ def test_revoke_session_only_hits_that_session():
 
 def test_revoke_account_hits_every_session_of_that_account():
     store = tokens.TokenStore()
-    a1, _ = store.issue("session-a", "cid-1", "x", 60)
-    b1, _ = store.issue("session-b", "cid-1", "x", 60)  # Same user, another (lost) browser session
-    other, _ = store.issue("session-c", "cid-2", "x", 60)
+    a1, _ = store.issue("session-a", "cid-1", "x", 60, CONFIG)
+    b1, _ = store.issue("session-b", "cid-1", "x", 60, CONFIG)  # Same user, another (lost) browser session
+    other, _ = store.issue("session-c", "cid-2", "x", 60, CONFIG)
     assert store.revoke_account("cid-1") == 2
     assert store.lookup(a1) is None
     assert store.lookup(b1) is None
@@ -148,7 +157,7 @@ def test_revoke_account_hits_every_session_of_that_account():
 
 def test_revoke_id_is_scoped_to_account():
     store = tokens.TokenStore()
-    token, record = store.issue("session-a", "cid-1", "x", 60)
+    token, record = store.issue("session-a", "cid-1", "x", 60, CONFIG)
     token_id = record.public()["id"]
     assert not store.revoke_id("cid-2", token_id)
     assert not store.revoke_id("cid-1", token_id[:4])  # too short to be unambiguous
@@ -159,9 +168,9 @@ def test_revoke_id_is_scoped_to_account():
 
 def test_for_account_and_public_view():
     store = tokens.TokenStore()
-    token, _ = store.issue("session-a", "cid-1", "x", 60)
-    store.issue("session-b", "cid-1", "y", 60)
-    store.issue("session-c", "cid-2", "z", 60)
+    token, _ = store.issue("session-a", "cid-1", "x", 60, CONFIG)
+    store.issue("session-b", "cid-1", "y", 60, CONFIG)
+    store.issue("session-c", "cid-2", "z", 60, CONFIG)
     listed = store.for_account("cid-1")
     assert {r.client for r in listed} == {"x", "y"}
     public = listed[0].public()
@@ -171,20 +180,20 @@ def test_for_account_and_public_view():
 
 def test_issue_refuses_more_than_max_per_user():
     store = tokens.TokenStore()
-    first, _ = store.issue("session-a", "cid-1", "x", 60, max_per_user=2)
-    store.issue("session-b", "cid-1", "x", 60, max_per_user=2)  # The cap counts every session of the account
+    first, _ = store.issue("session-a", "cid-1", "x", 60, token_config(max_per_user=2))
+    store.issue("session-b", "cid-1", "x", 60, token_config(max_per_user=2))  # The cap counts every session of the account
     with pytest.raises(tokens.TooManyTokens):
-        store.issue("session-a", "cid-1", "x", 60, max_per_user=2)
-    store.issue("session-a", "cid-2", "x", 60, max_per_user=2)  # Other accounts have their own allowance
+        store.issue("session-a", "cid-1", "x", 60, token_config(max_per_user=2))
+    store.issue("session-a", "cid-2", "x", 60, token_config(max_per_user=2))  # Other accounts have their own allowance
     assert store.revoke(first)
-    store.issue("session-a", "cid-1", "x", 60, max_per_user=2)  # Revoking one makes room
+    store.issue("session-a", "cid-1", "x", 60, token_config(max_per_user=2))  # Revoking one makes room
 
 
 def test_expired_tokens_do_not_count_towards_max_per_user():
     store = tokens.TokenStore()
-    _, record = store.issue("s", "cid-1", "x", 60, max_per_user=1)
+    _, record = store.issue("s", "cid-1", "x", 60, token_config(max_per_user=1))
     record.expires = int(time.time()) - 1
-    store.issue("s", "cid-1", "x", 60, max_per_user=1)
+    store.issue("s", "cid-1", "x", 60, token_config(max_per_user=1))
 
 
 @pytest.mark.parametrize(

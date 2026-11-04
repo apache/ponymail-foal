@@ -49,6 +49,9 @@ import time
 import typing
 import urllib.parse
 
+if typing.TYPE_CHECKING:  # plugins.configuration imports this module at runtime
+    import plugins.configuration
+
 TOKEN_PREFIX = "pmt_"
 TOKEN_BYTE_COUNT = 32  # 32 random bytes provide 256 bits of token entropy.
 MAX_CLIENT_NAME_LENGTH = 64
@@ -84,11 +87,11 @@ class TokenRecord:
         client: str,
         created: int,
         ttl: int,
-        max_ttl: int = DEFAULT_MAX_TTL,
+        config: "plugins.configuration.TokenConfig",
     ):
-        """Raises ValueError unless MIN_TTL <= ttl <= max_ttl"""
-        if not MIN_TTL <= ttl <= max_ttl:
-            raise ValueError(f"ttl must be between {MIN_TTL} and {max_ttl} seconds")
+        """Raises ValueError unless MIN_TTL <= ttl <= config.max_ttl"""
+        if not MIN_TTL <= ttl <= config.max_ttl:
+            raise ValueError(f"ttl must be between {MIN_TTL} and {config.max_ttl} seconds")
         self.token_hash = token_hash
         self.session_id = session_id
         self.cid = cid
@@ -181,13 +184,14 @@ class TokenStore:
         cid: str,
         client: str,
         ttl: int,
-        max_ttl: int = DEFAULT_MAX_TTL,
-        max_per_user: int = DEFAULT_MAX_PER_USER,
+        config: "plugins.configuration.TokenConfig",
     ) -> typing.Tuple[str, TokenRecord]:
         """
-        Issue a token. Raises ValueError unless MIN_TTL <= ttl <= max_ttl, and
-        TooManyTokens if the account already holds max_per_user live tokens.
+        Issue a token. Raises TooManyTokens if the account already holds config.max_per_user
+        live tokens, and ValueError unless MIN_TTL <= ttl <= config.max_ttl.
         """
+        if len(self.for_account(cid)) >= config.max_per_user:
+            raise TooManyTokens(f"an account can hold at most {config.max_per_user} tokens")
         token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTE_COUNT)
         record = TokenRecord(
             token_hash=hash_token(token),
@@ -196,10 +200,8 @@ class TokenStore:
             client=sanitize_client_name(client),
             created=int(time.time()),
             ttl=ttl,
-            max_ttl=max_ttl,
+            config=config,
         )
-        if len(self.for_account(cid)) >= max_per_user:
-            raise TooManyTokens(f"an account can hold at most {max_per_user} tokens")
         self.tokens[record.token_hash] = record
         return token, record
 
