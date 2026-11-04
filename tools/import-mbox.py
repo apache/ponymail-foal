@@ -347,7 +347,6 @@ class SlurpThread(Thread):
                 if json and dedup and message.get("message-id", None):
                     res = es.search( # pylint: disable=possibly-used-before-assignment
                         index=es.db_mbox,
-                        doc_type="_doc",
                         size=1,
                         _source=["mid"],  # so can report the match source
                         body={
