@@ -45,6 +45,18 @@ oauth:
         client_id:    your-client-id-here
         scope:        user:email
         construct:    true # encode all the above keys
+    # Any standard OAuth 2.0 provider (authorization code flow, confidential client):
+    # example:
+    #   name:           Example OAuth
+    #   oauth_portal:   https://oauth.example.org/authorize
+    #   .oauth_url:     https://oauth.example.org/token
+    #   .client_secret: your-client-secret     # enables the standard token exchange
+    #   .userinfo_url:  https://oauth.example.org/userinfo  # optional: identity fetched here, else read from the token response
+    #   client_id:      your-client-id
+    #   response_type:  code
+    #   scope:          email
+    #   construct:      true  # send client_id, response_type and scope on the authorization request
+    #   standard:       true  # constant redirect_uri and a state parameter, as strict providers require
     # Enable these for testing purposes (see testauth.py)
     # user:
     #   name:           Test Auth User
