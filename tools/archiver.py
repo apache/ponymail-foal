@@ -475,6 +475,24 @@ class Archiver(object):  # N.B. Also used by import-mbox.py
         """
         notes = []  # Put debug notes in here, for later...
 
+        allow_lid = config.get("list-id","allow")
+        deny_lid = config.get("list-id","ignore")
+        mlid = msg.get("list-id")
+        deny = False; allow = False;
+        # If our list id is on the allow list leave it be, otherwise set it to the default
+        # For a dry run display the list id's that are not allowed and not denied
+
+        if mlid:
+            mlidtext = textlib.normalize_lid(mlid)
+            if mlidtext:
+                if deny_lid:
+                    deny = any(x in mlidtext.lower() for x in deny_lid.split(','))
+                if (not deny and allow_lid):
+                    allow = any(x in mlidtext.lower() for x in allow_lid.split(','))
+                    if allow:
+                        lid = mlidtext
+                if allow_lid and not allow and not deny:
+                    print(f"New-list-ID {mlidtext}")
         if not lid:
             lid = textlib.normalize_lid(msg.get("list-id"), strict=True)
             if lid is None:
