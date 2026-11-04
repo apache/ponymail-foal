@@ -64,6 +64,35 @@ def test_issue_rejects_ttl_out_of_range(ttl, max_ttl):
     assert not store.tokens
 
 
+@pytest.mark.parametrize(
+    "ttl, max_ttl",
+    [(tokens.MIN_TTL, 7200), (600, 7200), (7200, 7200)],
+)
+def test_record_accepts_ttl_in_range(ttl, max_ttl):
+    record = tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, max_ttl)
+    assert record.created == 1000
+    assert record.expires == 1000 + ttl
+
+
+@pytest.mark.parametrize(
+    "ttl, max_ttl",
+    [(-5, 7200), (0, 7200), (tokens.MIN_TTL - 1, 7200), (7201, 7200), (tokens.DEFAULT_MAX_TTL + 1, None)],
+)
+def test_record_rejects_ttl_out_of_range(ttl, max_ttl):
+    with pytest.raises(ValueError):
+        if max_ttl is None:
+            tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl)  # Default cap is DEFAULT_MAX_TTL
+        else:
+            tokens.TokenRecord("hash", "s", "c", "x", 1000, ttl, max_ttl)
+
+
+def test_issue_reports_bad_ttl_before_token_limit():
+    store = tokens.TokenStore()
+    store.issue("s", "c", "x", 60, max_per_user=1)
+    with pytest.raises(ValueError):
+        store.issue("s", "c", "x", tokens.MIN_TTL - 1, max_per_user=1)
+
+
 def test_tokens_are_unique():
     store = tokens.TokenStore()
     issued = {store.issue("s", "c", "x", 60, max_per_user=100)[0] for _ in range(100)}

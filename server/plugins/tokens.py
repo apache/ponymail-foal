@@ -76,13 +76,25 @@ class TokenRecord:
     created: int
     expires: int
 
-    def __init__(self, token_hash: str, session_id: str, cid: str, client: str, created: int, expires: int):
+    def __init__(
+        self,
+        token_hash: str,
+        session_id: str,
+        cid: str,
+        client: str,
+        created: int,
+        ttl: int,
+        max_ttl: int = DEFAULT_MAX_TTL,
+    ):
+        """Raises ValueError unless MIN_TTL <= ttl <= max_ttl"""
+        if not MIN_TTL <= ttl <= max_ttl:
+            raise ValueError(f"ttl must be between {MIN_TTL} and {max_ttl} seconds")
         self.token_hash = token_hash
         self.session_id = session_id
         self.cid = cid
         self.client = client
         self.created = created
-        self.expires = expires
+        self.expires = created + ttl
 
     def expired(self, now: typing.Optional[int] = None) -> bool:
         return (now if now is not None else int(time.time())) >= self.expires
@@ -176,20 +188,18 @@ class TokenStore:
         Issue a token. Raises ValueError unless MIN_TTL <= ttl <= max_ttl, and
         TooManyTokens if the account already holds max_per_user live tokens.
         """
-        if not MIN_TTL <= ttl <= max_ttl:
-            raise ValueError(f"ttl must be between {MIN_TTL} and {max_ttl} seconds")
-        if len(self.for_account(cid)) >= max_per_user:
-            raise TooManyTokens(f"an account can hold at most {max_per_user} tokens")
-        now = int(time.time())
         token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_BYTE_COUNT)
         record = TokenRecord(
             token_hash=hash_token(token),
             session_id=session_id,
             cid=cid,
             client=sanitize_client_name(client),
-            created=now,
-            expires=now + ttl,
+            created=int(time.time()),
+            ttl=ttl,
+            max_ttl=max_ttl,
         )
+        if len(self.for_account(cid)) >= max_per_user:
+            raise TooManyTokens(f"an account can hold at most {max_per_user} tokens")
         self.tokens[record.token_hash] = record
         return token, record
 
