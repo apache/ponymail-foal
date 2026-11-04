@@ -64,12 +64,19 @@ async function async_snap(error) {
     let msg = await error.text();
     msg = msg.replace(/<.*?>/g, ""); // strip HTML tags
     if (error.status === 404) {
-        msg += "\n\nYou may need to be logged in with additional permissions in order to view this resource.";
+        msg += "\n\nYou may need to be logged in with specific credentials in order to view this resource.";
         if (pm_config.perm_error_postface) {
             msg += pm_config.perm_error_postface;
         }
     }
     modal("An error occured", "An error code %u occured while trying to fetch %s:\n%s".format(error.status, error.url, msg), "error");
+    if (error.status === 404) {
+        let text = document.getElementById('modal_text');
+        text.inject(new HTML('br'));
+        text.inject(new HTML('a', {
+            href: 'oauth.html'
+        }, "Click here to log in via OAuth"));
+   }
 }
 
 
