@@ -32,7 +32,7 @@ Two version identifiers exist:
 Auto-generated from the git commit SHA:
 
 ```bash
-cd server/update_version.sh
+server/update_version.sh
 ```
 
 This writes `server_version.py` with a short hash like `PONYMAIL_SERVER_VERSION = "a3f8c2d"`.
