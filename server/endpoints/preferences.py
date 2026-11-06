@@ -19,6 +19,7 @@ import plugins.server
 import plugins.aaa
 import plugins.session
 import aiohttp.web
+import elasticsearch.exceptions
 import typing
 import fnmatch
 
@@ -86,7 +87,10 @@ async def process(
     # Logging out??
     if indata.get("logout"):
         # Remove session from ElasticSearch
-        await plugins.session.remove_session(session)
+        try:
+            await plugins.session.remove_session(session)
+        except elasticsearch.exceptions.NotFoundError:
+            pass  # Nothing stored, e.g. not logged in
 
         # If stored in memory, remove from there.
         if session.cookie in server.data.sessions:
