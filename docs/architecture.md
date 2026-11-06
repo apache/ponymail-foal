@@ -226,7 +226,7 @@ pre-computed `top`, `thread`, and `previous` fields accelerate lookups.
    - Strips suffix (`.lua` → form parsing, `.json` → JSON parsing)
    - Looks up handler name in `self.handlers` dict
    - Acquires a database connection from the async pool
-   - Creates a session object (validates cookie if present)
+   - Creates a session object (validates token signature or cookie if present)
 4. **Endpoint** `process(server, session, indata)` executes:
    - Builds OpenSearch query via `plugins.defuzzer` (normalizes dates/filters)
    - Checks access via `plugins.aaa` (private list filtering)
@@ -247,6 +247,7 @@ user-installable extensions.
 | `database.py` | Async OpenSearch client, connection pool, index names |
 | `messages.py` | Email retrieval, threading logic, access filtering, trimming |
 | `session.py` | Cookie management, OAuth credential tracking |
+| `auth_token.py` | Token authentication: credentials for requests signed with a configured Ed25519 key |
 | `aaa.py` | Access control (public vs private list checks) |
 | `defuzzer.py` | Date/query parameter normalization and validation |
 | `background.py` | Periodic tasks (refresh list counts, activity stats) |

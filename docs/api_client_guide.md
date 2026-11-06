@@ -47,6 +47,51 @@ Cookie: ponymail=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 Obtain the cookie by completing an OAuth flow via the web UI, then
 extract it from your browser's DevTools (Network tab → Request Headers).
 
+### API Tokens
+
+For unattended, read-only access, ask the operator for a token key (see
+[`tokens`](configuration.md#tokens)). Each key has an Ed25519 key pair; you
+keep the private key. A signed request is logged in as the user the operator
+configured for the key, and can read the private lists that user can. Every
+request carries a signature:
+
+```
+Authorization: PonyMail-Ed25519 key=<key id>,ts=<unix time>,nonce=<random>,sig=<base64>
+```
+
+`sig` is the Ed25519 signature over these lines, joined with `\n`:
+
+```
+<ts>
+<nonce>
+<HTTP method, upper case>
+<path and query string exactly as sent, e.g. /api/stats.lua?list=dev&domain=example.org>
+<hex SHA-256 of the request body (of the empty string for GET)>
+```
+
+A signature is valid for 1 minute (by default) and its nonce only once, so
+sign each request separately, with a fresh random nonce. `tools/api-token.py` does this for you:
+
+```bash
+# Generate a key pair (prints the ponymail.yaml snippet for the operator)
+python3 tools/api-token.py generate reader-bot --uid reader
+
+# Sign and perform a request
+python3 tools/api-token.py fetch reader-bot.key reader-bot \
+  'https://lists.example.org/api/stats.lua?list=private&domain=example.org'
+python3 tools/api-token.py fetch reader-bot.key reader-bot \
+  https://lists.example.org/api/email.json --data '{"id": "<permalink>"}'
+
+# Or just print a header to use with curl
+curl -H "$(python3 tools/api-token.py header reader-bot.key reader-bot GET \
+  '/api/stats.lua?list=private&domain=example.org')" \
+  'https://lists.example.org/api/stats.lua?list=private&domain=example.org'
+```
+
+A key may have an expiry date; after it, requests get `401 Token key has
+expired` and you need a new key from the operator. Tokens are read-only: they can't compose emails, use the management
+console or log in to the web UI.
+
 ---
 
 ## Common Operations

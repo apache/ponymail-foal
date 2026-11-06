@@ -176,6 +176,56 @@ oauth:
 
 ---
 
+## `tokens`
+
+Token authentication: gives scripts and bots read-only API access using
+Ed25519 key pairs. It is enabled by configuring `keys`. The client keeps the
+private key; the server only holds the public key and the credentials the
+key logs in as. Every request is signed, see
+[API Client Guide](api_client_guide.md#api-tokens). Generate a key pair with
+`tools/api-token.py generate <key id>`.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `max_skew` | int | `60` | Seconds a signed request remains valid. Clocks of client and server must agree within this margin |
+| `replay_check` | string | `memory` | Where used nonces are remembered, so each request is accepted only once. `memory`: per server process, enough for a single instance. `database`: in the session index, shared by all instances behind one proxy (one small write per token request; expired entries are removed hourly) |
+| `keys` | dict | `{}` | Token keys, by key id (see below) |
+
+Each entry in `keys`:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `public_key` | string | | Ed25519 public key, base64 of the raw 32 bytes or PEM |
+| `uid` | string | key id | User id the key logs in as |
+| `name` | string | `uid` | Full name the key logs in as |
+| `email` | string | `""` | Email address the key logs in as |
+| `authoritative` | bool | `false` | As for an OAuth provider: whether access control may trust this login. With the default access control (`plugins/aaa.py`), an authoritative login can read all private lists |
+| `expires` | date | | From this moment the key is refused (`401`). A date (`2027-01-01`) means the start of that day, UTC; a date and time (`2027-01-01T12:00:00+02:00`) is taken as UTC if it has no timezone. Without it, the key never expires |
+
+```yaml
+tokens:
+  keys:
+    reader-bot:
+      public_key: "in+3wOW6DMtNOXhBKYZ0k4vBm1cJWbQkej7nFe75W6I="
+      uid: "reader"
+      authoritative: true
+      expires: 2027-01-01
+```
+
+Tokens only authenticate. What a token may read is decided by the access
+control module, from the credentials above, in the same way as for an OAuth
+login. If access control looks up the rights of a `uid` when it is asked,
+a change in those rights applies to the tokens of that `uid` straight away.
+
+Token requests are limited to read-only endpoints (`stats`, `email`,
+`thread`, `source`, `mbox`, `preferences`, `pminfo`, `gravatar`); any other
+endpoint, or a bad signature, gets a `401`. A token never has admin rights.
+Requests without a token signature are unaffected. Expiry is checked on
+every request, so it takes effect without a restart. To revoke a key early,
+remove it and restart the server.
+
+---
+
 ## `archiver`
 
 Controls threading behavior when archiving new emails. These settings

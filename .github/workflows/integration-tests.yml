@@ -23,6 +23,7 @@ on:
       - '**/integration-tests.yml'
       - 'test/itest*'
       - 'server/**'
+      - 'tools/api-token.py'
 
   workflow_dispatch:
 
@@ -111,6 +112,18 @@ jobs:
         python -u main.py --apilog DEBUG --logger DEBUG --stoppable --refreshable --testendpoints > main.log 2>&1 &
         sleep 5 # allow time to start up properly
         curl -sq http://localhost:8080/api/refresh # This will fail if the server is not ready
+    - name: Token servers
+      run: |
+        # Two instances with token keys, sharing used nonces via the database
+        python test/itest_token_setup.py 8081 8082
+        cd server
+        for port in 8081 8082
+        do
+          python -u main.py --config ponymail-token-$port.yaml --apilog DEBUG --stoppable > main-token-$port.log 2>&1 &
+        done
+        sleep 5 # allow time to start up properly
+        curl -sqf http://localhost:8081/api/preferences.lua > /dev/null
+        curl -sqf http://localhost:8082/api/preferences.lua > /dev/null
     - name: Show Database
       if: always()
       run: |
@@ -126,6 +139,9 @@ jobs:
     - name: Test against database emails
       run: |
         python -m pytest -s test/itest_integration.py
+    - name: Test token authentication against database emails
+      run: |
+        python -m pytest -s test/itest_auth_token.py
     - name: Shutdown
       if: always()
       run: |
@@ -133,7 +149,13 @@ jobs:
         curl -sq -H 'Content-Type: application/json' 'localhost:9200/ponymail-account/_search?pretty' -d '{ "size": 1000, "query": { "match_all": {} }}'
         curl -sq -H 'Content-Type: application/json' 'localhost:9200/ponymail-session/_search?pretty' -d '{ "size": 1000, "query": { "match_all": {} }}'
         curl -sq http://localhost:8080/api/stop
+        curl -sq http://localhost:8081/api/stop
+        curl -sq http://localhost:8082/api/stop
     - name: Show log
       if: always()
       run: |
         cat server/main.log
+    - name: Show token server logs
+      if: always()
+      run: |
+        cat server/main-token-8081.log server/main-token-8082.log

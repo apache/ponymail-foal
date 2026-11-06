@@ -30,6 +30,7 @@ import aiohttp.web
 import yaml
 import uuid
 
+import plugins.auth_token
 import plugins.background
 import plugins.configuration
 import plugins.database
@@ -164,7 +165,15 @@ class Server(plugins.server.BaseServer):
 
         # Find a handler, or 404
         if handler in self.handlers:
-            session = await plugins.session.get_session(self, request)
+            # A request signed with a configured token key is authenticated by that, instead of by cookie
+            session = None
+            if self.config.tokens.keys:
+                try:
+                    session = await plugins.auth_token.get_session(self, request, handler)
+                except plugins.auth_token.TokenError as e:
+                    return aiohttp.web.Response(headers=headers, status=401, text=str(e))
+            if not session:
+                session = await plugins.session.get_session(self, request)
             try:
                 # Wait for endpoint response. This is typically JSON in case of success,
                 # but could be an exception (that needs a traceback) OR

@@ -26,6 +26,8 @@ __pycache__/
 # Local configuration files
 ponymail.yaml
 tools/archiver.yaml
+server/ponymail-token-*.yaml
+test/itest-keys/
 
 # Local temporary configuration files
 ponymail.yaml.tmp

@@ -68,3 +68,14 @@ oauth:
   #  google_client_id:     ~
   #  github_client_id:     ~
   #  github_client_secret: ~
+
+# Token authentication: read-only API access with Ed25519 key pairs (see docs/configuration.md, tools/api-token.py)
+#tokens:
+#  max_skew: 60 # seconds a signed request stays valid
+#  replay_check: memory # or "database" when running several server instances
+#  keys:
+#    reader-bot:
+#      public_key: "base64 raw public key, or PEM"
+#      uid: "reader" # the user the key logs in as; access control decides what it may read
+#      authoritative: false
+#      expires: 2027-01-01 # optional, refused from this date (UTC)

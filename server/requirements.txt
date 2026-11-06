@@ -12,3 +12,4 @@ google-auth[urllib3]~=2.58.1     # AL2.0
 aiosmtplib~=5.1.3                # MIT
 python-dateutil                  # BSD, AL2.0
 types-python-dateutil            # BSD, AL2.0
+cryptography>=42.0.0             # AL2.0 or BSD - Ed25519 API token keys

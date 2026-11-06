@@ -36,6 +36,7 @@ server/
 │   ├── database.py            # ElasticSearch async client pool
 │   ├── messages.py            # Email query, threading, trimming logic
 │   ├── session.py             # Cookie-based sessions + OAuth credential tracking
+│   ├── auth_token.py          # Token authentication (signed read-only API requests)
 │   ├── aaa.py                 # Access control (public vs private lists)
 │   ├── defuzzer.py            # Date/query parameter normalization
 │   ├── background.py          # Periodic index refresh tasks
