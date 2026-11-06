@@ -29,6 +29,11 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run the suite with session tokens on and off (off is the server default)
+        tokens: [true, false]
 
     services:
 
@@ -83,8 +88,9 @@ jobs:
               name:           Test Auth User
               oauth_portal:   http://localhost:8080/api/testauth
               .oauth_url:     http://localhost:8080/api/testauth
+        tokens:
+          enabled: ${{ matrix.tokens }}
 
-        
         EOD
         echo server/ponymail.yaml 
         cat server/ponymail.yaml
@@ -124,6 +130,8 @@ jobs:
       run: |
         curl -sq 'http://localhost:8080/api/stats.lua?list=*&domain=ponymail.apache.org&d=gte=0d&emailsOnly'
     - name: Test against database emails
+      env:
+        PONYMAIL_TOKENS: ${{ matrix.tokens }}
       run: |
         python -m pytest -s test/itest_integration.py
     - name: Shutdown

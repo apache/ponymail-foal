@@ -172,4 +172,4 @@ async def process(
 
 
 def register(_server: plugins.server.BaseServer):
-    return plugins.server.Endpoint(process)
+    return plugins.server.Endpoint(process, token_allowed=True)
