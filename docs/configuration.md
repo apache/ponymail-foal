@@ -207,6 +207,27 @@ tokens:
 
 ---
 
+## `aaa`
+
+Selects the access control (AAA) module the server uses, at startup.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `module` | string | `simple` | `simple`: `plugins/aaa.py`, private lists are readable by users of an authoritative OAuth provider. `public`: `plugins/aaa_public.py`, private lists are readable by no one, e.g. for a public mirror |
+
+Endpoints and plugins check access through `server.aaa` (or
+`session.server.aaa`), which is whichever module was selected. A module
+provides `can_access_list(session, listid)` and
+`can_access_email(session, email)`; to add one, put it in `server/plugins/`
+and add its name to `AAAConfig.MODULES` in `plugins/configuration.py`.
+
+```yaml
+aaa:
+  module: public
+```
+
+---
+
 ## `archiver`
 
 Controls threading behavior when archiving new emails. These settings

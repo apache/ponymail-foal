@@ -72,6 +72,8 @@ class Server(plugins.server.BaseServer):
         # Load configuration
         yml = yaml.safe_load(open(args.config))
         self.config = plugins.configuration.Configuration(yml)
+        self.aaa = importlib.import_module(self.config.aaa.module_name)
+        print(f"Using access control module {self.config.aaa.module_name}")
         self.data = plugins.configuration.InterData()
         self.handlers = dict()
         self.dbpool = asyncio.Queue()

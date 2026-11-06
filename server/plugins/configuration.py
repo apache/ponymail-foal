@@ -98,6 +98,22 @@ class TokenConfig:
             raise ValueError("tokens.max_per_user must be at least 1, got %d" % self.max_per_user)
 
 
+class AAAConfig:
+    # Access control implementations that can be selected, by name
+    MODULES = {
+        "simple": "plugins.aaa",  # Private lists readable by users of an authoritative OAuth provider, the default
+        "public": "plugins.aaa_public",  # No access to private lists for anyone
+    }
+    module: str
+    module_name: str
+
+    def __init__(self, subyaml: dict):
+        self.module = str(subyaml.get("module", "simple"))
+        if self.module not in self.MODULES:
+            raise ValueError(f"aaa.module must be one of {', '.join(self.MODULES)}, not {self.module!r}")
+        self.module_name = self.MODULES[self.module]
+
+
 class DBConfig:
     dburl: str
     hostname: str
@@ -128,6 +144,7 @@ class Configuration:
     oauth: OAuthConfig
     ui: UIConfig
     tokens: TokenConfig
+    aaa: AAAConfig
 
     def __init__(self, yml: dict):
         self.server = ServerConfig(yml.get("server", {}))
@@ -136,6 +153,7 @@ class Configuration:
         self.oauth = OAuthConfig(yml.get("oauth", {}))
         self.ui = UIConfig(yml.get("ui", {}))
         self.tokens = TokenConfig(yml.get("tokens", {}) or {})
+        self.aaa = AAAConfig(yml.get("aaa", {}))
 
 
 class InterData:
