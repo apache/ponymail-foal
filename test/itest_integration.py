@@ -226,6 +226,18 @@ def test_lists():
     assert TEST_LIST in lists[TEST_DOMAIN]
     assert len(lists) == DOMAIN_COUNT
 
+def test_logout_not_logged_in():
+    # No session was ever stored for this request
+    res = requests.get(f"{API_BASE}/preferences.lua", params={"logout": "true"})
+    assert res.status_code == 200, res.text
+    assert res.json() == {"okay": True}
+
+def test_logout():
+    cookies = get_cookies('user')
+    res = requests.get(f"{API_BASE}/preferences.lua", params={"logout": "true"}, cookies=cookies)
+    assert res.status_code == 200, res.text
+    assert 'credentials' not in requests.get(f"{API_BASE}/preferences", cookies=cookies).json()['login']
+
 def test_public_stats():
     jzon = requests.get(
         f"{API_BASE}/stats.lua",
