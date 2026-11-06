@@ -249,6 +249,7 @@ user-installable extensions.
 | `session.py` | Cookie management, OAuth credential tracking |
 | `aaa.py` | Access control (public vs private list checks), the default `aaa.module` |
 | `aaa_public.py` | Alternative access control: no private lists for anyone (`aaa.module: public`) |
+| `aaa_acl.py` | Alternative access control: private lists per user (`aaa.module: acl`) |
 | `defuzzer.py` | Date/query parameter normalization and validation |
 | `background.py` | Periodic tasks (refresh list counts, activity stats) |
 | `formdata.py` | Request body parsing (form-encoded vs JSON) |

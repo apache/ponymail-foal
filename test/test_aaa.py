@@ -20,6 +20,7 @@
 import importlib
 import os
 import sys
+import types
 
 import pytest
 
@@ -80,3 +81,41 @@ def test_public():
     for session in (ANONYMOUS, OAUTH, AUTHORITATIVE):
         assert not aaa.can_access_list(session, "secret@example.org")
         assert not aaa.can_access_email(session, PRIVATE_EMAIL)
+
+
+def acl_session(credentials):
+    config = plugins.configuration.Configuration(
+        {"aaa": {"module": "acl", "acl": {"jdoe": ["private@example.org", "*@incubator.example.org"]}}}
+    )
+    session = session_with(credentials)
+    session.server = types.SimpleNamespace(config=config)
+    return session
+
+
+def test_acl():
+    aaa = load("acl")
+    session = acl_session({"uid": "jdoe", "authoritative": True})
+    assert aaa.can_access_list(session, "private@example.org")
+    assert aaa.can_access_list(session, "<private.example.org>")  # list_raw, as in emails
+    assert aaa.can_access_list(session, "<Dev.Incubator.Example.org>")
+    assert not aaa.can_access_list(session, "<dev.foo.incubator.example.org>")  # wildcard matches the list part
+    assert not aaa.can_access_list(session, "secret@example.org")
+    assert not aaa.can_access_list(session, None)
+    assert aaa.can_access_email(session, {"private": True, "list_raw": "<private.example.org>"})
+    assert not aaa.can_access_email(session, PRIVATE_EMAIL)
+    assert aaa.can_access_email(session, PUBLIC_EMAIL)
+
+
+def test_acl_needs_authoritative_known_uid():
+    aaa = load("acl")
+    for credentials in (None, {"uid": "jdoe", "authoritative": False}, {"uid": "other", "authoritative": True}):
+        session = acl_session(credentials)
+        assert not aaa.can_access_list(session, "private@example.org"), credentials
+        assert not aaa.can_access_email(session, {"private": True, "list_raw": "<private.example.org>"})
+
+
+def test_acl_config():
+    assert plugins.configuration.Configuration({}).aaa.acl == {}
+    for bad in (["jdoe"], {"jdoe": "private@example.org"}):
+        with pytest.raises(ValueError, match="aaa.acl must map each uid"):
+            plugins.configuration.Configuration({"aaa": {"module": "acl", "acl": bad}})

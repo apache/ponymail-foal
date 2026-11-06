@@ -182,7 +182,8 @@ Selects the access control (AAA) module the server uses, at startup.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `module` | string | `simple` | `simple`: `plugins/aaa.py`, private lists are readable by users of an authoritative OAuth provider. `public`: `plugins/aaa_public.py`, private lists are readable by no one, e.g. for a public mirror |
+| `module` | string | `simple` | `simple`: `plugins/aaa.py`, private lists are readable by users of an authoritative OAuth provider. `public`: `plugins/aaa_public.py`, private lists are readable by no one, e.g. for a public mirror. `acl`: `plugins/aaa_acl.py`, private lists are readable per user, as listed in `acl` |
+| `acl` | dict | `{}` | Only for `module: acl`. Maps the uid of a login to the private lists it may read, as `list@domain`; shell wildcards are allowed, e.g. `*@incubator.apache.org`. Only logins from an authoritative OAuth provider (or with an authoritative token) count, as other providers let anyone choose their uid. Changes need a restart |
 
 Endpoints and plugins check access through `server.aaa` (or
 `session.server.aaa`), which is whichever module was selected. A module
@@ -193,6 +194,15 @@ and add its name to `AAAConfig.MODULES` in `plugins/configuration.py`.
 ```yaml
 aaa:
   module: public
+```
+
+```yaml
+aaa:
+  module: acl
+  acl:
+    jdoe:
+      - "private@ponymail.apache.org"
+      - "*@incubator.apache.org"
 ```
 
 ---

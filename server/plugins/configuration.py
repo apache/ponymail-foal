@@ -17,6 +17,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import typing
+
+
 class ServerConfig:
     port: int
     ip: str
@@ -79,15 +82,21 @@ class AAAConfig:
     MODULES = {
         "simple": "plugins.aaa",  # Private lists readable by users of an authoritative OAuth provider, the default
         "public": "plugins.aaa_public",  # No access to private lists for anyone
+        "acl": "plugins.aaa_acl",  # Private lists readable per uid of an authoritative login, as listed in acl
     }
     module: str
     module_name: str
+    acl: typing.Dict[str, typing.List[str]]  # uid: list patterns (list@domain, wildcards allowed), for "acl"
 
     def __init__(self, subyaml: dict):
         self.module = str(subyaml.get("module", "simple"))
         if self.module not in self.MODULES:
             raise ValueError(f"aaa.module must be one of {', '.join(self.MODULES)}, not {self.module!r}")
         self.module_name = self.MODULES[self.module]
+        acl = subyaml.get("acl") or {}
+        if not isinstance(acl, dict) or not all(isinstance(lists, list) for lists in acl.values()):
+            raise ValueError("aaa.acl must map each uid to a YAML array of lists")
+        self.acl = {str(uid): [str(x).lower() for x in lists] for uid, lists in acl.items()}
 
 
 class DBConfig:

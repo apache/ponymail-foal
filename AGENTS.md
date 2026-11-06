@@ -38,6 +38,7 @@ server/
 │   ├── session.py             # Cookie-based sessions + OAuth credential tracking
 │   ├── aaa.py                 # Access control (public vs private lists), selected by aaa.module
 │   ├── aaa_public.py          # Example alternative: no private lists for anyone
+│   ├── aaa_acl.py             # Example alternative: private lists per uid (aaa.acl)
 │   ├── defuzzer.py            # Date/query parameter normalization
 │   ├── background.py          # Periodic index refresh tasks
 │   ├── formdata.py            # Request body parsing (form vs JSON)

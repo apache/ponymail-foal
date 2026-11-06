@@ -69,6 +69,11 @@ oauth:
   #  github_client_id:     ~
   #  github_client_secret: ~
 
-# Access control: "simple" (default, plugins/aaa.py) or "public" (plugins/aaa_public.py, no private lists)
+# Access control: "simple" (default, plugins/aaa.py), "public" (plugins/aaa_public.py, no private lists)
+# or "acl" (plugins/aaa_acl.py, private lists per uid of an authoritative login)
 #aaa:
 #  module: simple
+#  acl: # only for module: acl
+#    jdoe:
+#      - "private@example.org"
+#      - "*@incubator.example.org"
