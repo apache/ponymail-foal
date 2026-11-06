@@ -100,7 +100,7 @@ user-installable — to extend behavior, add endpoints instead.
 | Module | What you use it for |
 |--------|-------------------|
 | `plugins.messages` | `get_email()`, `fetch_children()`, `find_parent()`, `query()` |
-| `plugins.aaa` | `can_access_list()` — checks private list permissions |
+| `server.aaa` | `can_access_list()`, `can_access_email()` — checks private list permissions, using the module selected by `aaa.module` (`plugins.aaa` by default) |
 | `plugins.session` | `SessionObject` with `.credentials`, `.database` |
 | `plugins.defuzzer` | `defuzz(indata)` — normalizes date/search parameters into OpenSearch queries |
 | `plugins.server` | `BaseServer`, `Endpoint`, `StreamingEndpoint` base classes |

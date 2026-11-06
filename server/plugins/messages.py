@@ -33,7 +33,6 @@ import re
 import typing
 
 
-import plugins.aaa
 import plugins.session
 import plugins.database
 
@@ -260,7 +259,7 @@ async def get_email(
         is_admin = session.credentials and session.credentials.admin
         if doc.get("deleted", False) and not is_admin:
             return None
-        if doc and plugins.aaa.can_access_email(session, doc):
+        if doc and session.server.aaa.can_access_email(session, doc):
             trim_email(doc)
             if not session.credentials:
                 doc = anonymize(doc)
@@ -297,7 +296,7 @@ async def get_email_irt(
         doc["id"] = doc["mid"]
         if doc.get("deleted", False) and not is_admin:
             continue
-        if doc and plugins.aaa.can_access_email(session, doc):
+        if doc and session.server.aaa.can_access_email(session, doc):
             trim_email(doc)
             if not session.credentials:
                 doc = anonymize(doc)
@@ -372,7 +371,7 @@ async def query_batch(
             # If email was delete/hidden and we're not doing an admin query, ignore it
             if doc.get("deleted", False) and not is_admin:
                 continue
-            if plugins.aaa.can_access_email(session, doc):
+            if session.server.aaa.can_access_email(session, doc):
                 if "mid" in doc: # might be missing when using source_fields
                     doc["id"] = doc["mid"]
                 # Calculate gravatars if not present in _source
@@ -515,7 +514,7 @@ async def get_accessible_filter(session: plugins.session.SessionObject, query_de
     # If not, we adjust the search here to only include public emails OR private lists we can access.
     private_lists_accessible = []
     for listname in private_lists_found:
-        if plugins.aaa.can_access_list(session, listname):
+        if session.server.aaa.can_access_list(session, listname):
             private_lists_accessible.append(listname)
     
     # If we can't access all private lists found, either only public emails or lists we can access.

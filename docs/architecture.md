@@ -229,7 +229,7 @@ pre-computed `top`, `thread`, and `previous` fields accelerate lookups.
    - Creates a session object (validates cookie if present)
 4. **Endpoint** `process(server, session, indata)` executes:
    - Builds OpenSearch query via `plugins.defuzzer` (normalizes dates/filters)
-   - Checks access via `plugins.aaa` (private list filtering)
+   - Checks access via `server.aaa` (private list filtering; `plugins.aaa` or another module, per `aaa.module`)
    - Queries OpenSearch via `session.database`
    - Returns a dict (auto-serialized to JSON) or a custom `aiohttp.web.Response`
 5. **Response** sent back through proxy to client
@@ -247,7 +247,8 @@ user-installable extensions.
 | `database.py` | Async OpenSearch client, connection pool, index names |
 | `messages.py` | Email retrieval, threading logic, access filtering, trimming |
 | `session.py` | Cookie management, OAuth credential tracking |
-| `aaa.py` | Access control (public vs private list checks) |
+| `aaa.py` | Access control (public vs private list checks), the default `aaa.module` |
+| `aaa_public.py` | Alternative access control: no private lists for anyone (`aaa.module: public`) |
 | `defuzzer.py` | Date/query parameter normalization and validation |
 | `background.py` | Periodic tasks (refresh list counts, activity stats) |
 | `formdata.py` | Request body parsing (form-encoded vs JSON) |

@@ -16,7 +16,6 @@
 # limitations under the License.
 
 import plugins.server
-import plugins.aaa
 import plugins.session
 import aiohttp.web
 import typing
@@ -58,7 +57,7 @@ async def process(
             lname, ldomain = ml.split("@", 1)
             can_access = True
             if entry.get("private", True):
-                can_access = plugins.aaa.can_access_list(session, ml)
+                can_access = server.aaa.can_access_list(session, ml)
             if server.config.ui.focus_domain != "*":
                 if '*' in server.config.ui.focus_domain:
                     if not fnmatch.fnmatch(ldomain, server.config.ui.focus_domain):

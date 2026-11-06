@@ -18,6 +18,7 @@
 # under the License.
 
 import asyncio
+import types
 import typing
 
 import aiohttp
@@ -45,6 +46,7 @@ class BaseServer:
     """Main server class, base def"""
 
     config: plugins.configuration.Configuration
+    aaa: types.ModuleType  # plugins.aaa or an alternative, as selected by config.aaa
     server: typing.Optional[aiohttp.web.Server]
     data: plugins.configuration.InterData
     handlers: typing.Dict[str, Endpoint]

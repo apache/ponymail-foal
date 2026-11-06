@@ -68,3 +68,7 @@ oauth:
   #  google_client_id:     ~
   #  github_client_id:     ~
   #  github_client_secret: ~
+
+# Access control: "simple" (default, plugins/aaa.py) or "public" (plugins/aaa_public.py, no private lists)
+#aaa:
+#  module: simple
