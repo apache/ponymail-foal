@@ -229,7 +229,7 @@ pre-computed `top`, `thread`, and `previous` fields accelerate lookups.
    - Creates a session object (validates cookie if present)
 4. **Endpoint** `process(server, session, indata)` executes:
    - Builds OpenSearch query via `plugins.defuzzer` (normalizes dates/filters)
-   - Checks access via `server.aaa` (private list filtering; `plugins.aaa` or another module, per `aaa.module`)
+   - Checks access via `server.aaa` (private list filtering; `plugins.aaa` or the class set by `aaa.plugin`)
    - Queries OpenSearch via `session.database`
    - Returns a dict (auto-serialized to JSON) or a custom `aiohttp.web.Response`
 5. **Response** sent back through proxy to client
@@ -247,8 +247,9 @@ user-installable extensions.
 | `database.py` | Async OpenSearch client, connection pool, index names |
 | `messages.py` | Email retrieval, threading logic, access filtering, trimming |
 | `session.py` | Cookie management, OAuth credential tracking |
-| `aaa.py` | Access control (public vs private list checks), the default `aaa.module` |
-| `aaa_public.py` | Alternative access control: no private lists for anyone (`aaa.module: public`) |
+| `aaa.py` | Access control (public vs private list checks), used when `aaa.plugin` is not set |
+| `aaa_plugin.py` | `AAAPlugin` base class of access control plugins; loads the one set by `aaa.plugin` |
+| `aaa_public.py` | Example access control plugin: no private lists for anyone |
 | `defuzzer.py` | Date/query parameter normalization and validation |
 | `background.py` | Periodic tasks (refresh list counts, activity stats) |
 | `formdata.py` | Request body parsing (form-encoded vs JSON) |

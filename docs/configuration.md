@@ -209,22 +209,26 @@ tokens:
 
 ## `aaa`
 
-Selects the access control (AAA) module the server uses, at startup.
+Selects the access control (AAA) plugin the server uses, at startup.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `module` | string | `simple` | `simple`: `plugins/aaa.py`, private lists are readable by users of an authoritative OAuth provider. `public`: `plugins/aaa_public.py`, private lists are readable by no one, e.g. for a public mirror |
+| `plugin` | string | none | Dotted path of the access control class, a subclass of `plugins.aaa_plugin.AAAPlugin`. Without it, the functions in `plugins/aaa.py` are used: private lists are readable by users of an authoritative OAuth provider |
 
-Endpoints and plugins check access through `server.aaa` (or
-`session.server.aaa`), which is whichever module was selected. A module
-provides `can_access_list(session, listid)` and
-`can_access_email(session, email)`; to add one, put it in `server/plugins/`
-and add its name to `AAAConfig.MODULES` in `plugins/configuration.py`.
+Any importable class will do, so a site can use its own without changing
+Pony Mail. The server refuses to start if the class can't be found, isn't
+an `AAAPlugin` or doesn't implement `can_access_list`. Included:
+
+| Plugin | Access to private lists |
+|--------|-------------------------|
+| `plugins.aaa_public.PublicAAA` | None for anyone, whatever their login, e.g. for a public mirror |
 
 ```yaml
 aaa:
-  module: public
+  plugin: plugins.aaa_public.PublicAAA
 ```
+
+See [plugins.md](plugins.md#access-control-plugins) for writing one.
 
 ---
 

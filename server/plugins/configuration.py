@@ -17,6 +17,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import typing
+
 import plugins.tokens
 
 
@@ -99,19 +101,13 @@ class TokenConfig:
 
 
 class AAAConfig:
-    # Access control implementations that can be selected, by name
-    MODULES = {
-        "simple": "plugins.aaa",  # Private lists readable by users of an authoritative OAuth provider, the default
-        "public": "plugins.aaa_public",  # No access to private lists for anyone
-    }
-    module: str
-    module_name: str
+    plugin: typing.Optional[str]
 
     def __init__(self, subyaml: dict):
-        self.module = str(subyaml.get("module", "simple"))
-        if self.module not in self.MODULES:
-            raise ValueError(f"aaa.module must be one of {', '.join(self.MODULES)}, not {self.module!r}")
-        self.module_name = self.MODULES[self.module]
+        # Dotted path of the access control class (a plugins.aaa_plugin.AAAPlugin), checked at startup.
+        # None: the functions in plugins/aaa.py
+        plugin = subyaml.get("plugin")
+        self.plugin = str(plugin) if plugin else None
 
 
 class DBConfig:
@@ -153,7 +149,7 @@ class Configuration:
         self.oauth = OAuthConfig(yml.get("oauth", {}))
         self.ui = UIConfig(yml.get("ui", {}))
         self.tokens = TokenConfig(yml.get("tokens", {}) or {})
-        self.aaa = AAAConfig(yml.get("aaa", {}))
+        self.aaa = AAAConfig(yml.get("aaa", {}) or {})
 
 
 class InterData:

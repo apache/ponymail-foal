@@ -18,7 +18,6 @@
 # under the License.
 
 import asyncio
-import types
 import typing
 
 import aiohttp
@@ -26,6 +25,9 @@ from elasticsearch import AsyncElasticsearch
 
 import plugins.configuration
 import plugins.offloader
+
+if typing.TYPE_CHECKING:
+    import plugins.aaa_plugin  # Imports this module itself
 
 
 class Endpoint:
@@ -50,7 +52,7 @@ class BaseServer:
     """Main server class, base def"""
 
     config: plugins.configuration.Configuration
-    aaa: types.ModuleType  # plugins.aaa or an alternative, as selected by config.aaa
+    aaa: "plugins.aaa_plugin.AAAPlugin"  # Access control, as selected by config.aaa.plugin
     server: typing.Optional[aiohttp.web.Server]
     data: plugins.configuration.InterData
     handlers: typing.Dict[str, Endpoint]

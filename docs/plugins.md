@@ -100,7 +100,7 @@ user-installable — to extend behavior, add endpoints instead.
 | Module | What you use it for |
 |--------|-------------------|
 | `plugins.messages` | `get_email()`, `fetch_children()`, `find_parent()`, `query()` |
-| `server.aaa` | `can_access_list()`, `can_access_email()` — checks private list permissions, using the module selected by `aaa.module` (`plugins.aaa` by default) |
+| `server.aaa` | `can_access_list()`, `can_access_email()` — checks private list permissions, using the class set by `aaa.plugin` (`plugins.aaa` by default) |
 | `plugins.session` | `SessionObject` with `.credentials`, `.database` |
 | `plugins.defuzzer` | `defuzz(indata)` — normalizes date/search parameters into OpenSearch queries |
 | `plugins.server` | `BaseServer`, `Endpoint`, `StreamingEndpoint` base classes |
@@ -161,6 +161,51 @@ oauth:
       oauth_portal: https://auth.example.org/authorize
       client_id: your-client-id
 ```
+
+---
+
+## Access Control Plugins
+
+Who may read private lists is decided by an access control plugin: a
+subclass of `plugins.aaa_plugin.AAAPlugin`. It can live anywhere Python can
+import it from, so a site can keep its own outside the Pony Mail tree:
+
+```python
+# mysite/aaa.py
+
+import typing
+
+import plugins.aaa_plugin
+import plugins.session
+
+
+READERS = {"jdoe", "asmith"}  # e.g. looked up in a directory instead
+
+
+class SiteAAA(plugins.aaa_plugin.AAAPlugin):
+    def can_access_list(self, session: plugins.session.SessionObject, listid: typing.Optional[str]) -> bool:
+        """listid is 'list@domain' or '<list.domain>' (list_raw)"""
+        creds = session.credentials
+        return bool(creds and creds.authoritative and creds.uid in READERS)
+```
+
+Select it in `ponymail.yaml`:
+
+```yaml
+aaa:
+  plugin: mysite.aaa.SiteAAA
+```
+
+- `can_access_list(session, listid)` is required. `can_access_email(session, email)`
+  defaults to: public emails for everyone, private ones if `can_access_list`
+  allows their list. Override it to decide per email.
+- One instance is created at startup, as `server.aaa`; `self.server` gives
+  access to the configuration.
+- The server refuses to start if the class can't be imported, isn't an
+  `AAAPlugin`, or doesn't implement `can_access_list`.
+- Without `aaa.plugin`, the server uses the functions `can_access_list` and
+  `can_access_email` in `plugins/aaa.py`, so a site's own version of that
+  file keeps working.
 
 ---
 
