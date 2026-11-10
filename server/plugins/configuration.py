@@ -17,6 +17,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import typing
+
 import plugins.tokens
 
 
@@ -98,6 +100,16 @@ class TokenConfig:
             raise ValueError("tokens.max_per_user must be at least 1, got %d" % self.max_per_user)
 
 
+class AAAConfig:
+    plugin: typing.Optional[str]
+
+    def __init__(self, subyaml: dict):
+        # Dotted path of the access control class (a plugins.aaa_plugin.AAAPlugin), checked at startup.
+        # None: plugins.aaa.AuthoritativeAAA
+        plugin = subyaml.get("plugin")
+        self.plugin = str(plugin) if plugin else None
+
+
 class DBConfig:
     dburl: str
     hostname: str
@@ -128,6 +140,7 @@ class Configuration:
     oauth: OAuthConfig
     ui: UIConfig
     tokens: TokenConfig
+    aaa: AAAConfig
 
     def __init__(self, yml: dict):
         self.server = ServerConfig(yml.get("server", {}))
@@ -136,6 +149,7 @@ class Configuration:
         self.oauth = OAuthConfig(yml.get("oauth", {}))
         self.ui = UIConfig(yml.get("ui", {}))
         self.tokens = TokenConfig(yml.get("tokens", {}) or {})
+        self.aaa = AAAConfig(yml.get("aaa", {}) or {})
 
 
 class InterData:

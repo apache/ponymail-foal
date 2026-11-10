@@ -36,7 +36,9 @@ server/
 │   ├── database.py            # ElasticSearch async client pool
 │   ├── messages.py            # Email query, threading, trimming logic
 │   ├── session.py             # Cookie-based sessions + OAuth credential tracking
-│   ├── aaa.py                 # Access control (public vs private lists)
+│   ├── aaa_plugin.py          # AAAPlugin abstract base class; loads the class set by aaa.plugin
+│   ├── aaa.py                 # Access control: AuthoritativeAAA, the default plugin
+│   ├── aaa_public.py          # Example AAAPlugin: no private lists for anyone
 │   ├── defuzzer.py            # Date/query parameter normalization
 │   ├── background.py          # Periodic index refresh tasks
 │   ├── formdata.py            # Request body parsing (form vs JSON)

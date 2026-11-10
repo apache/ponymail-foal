@@ -207,6 +207,33 @@ tokens:
 
 ---
 
+## `aaa`
+
+Selects the access control (AAA) plugin the server uses, at startup.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `plugin` | string | `plugins.aaa.AuthoritativeAAA` | Dotted path of the access control class, a subclass of `plugins.aaa_plugin.AAAPlugin` |
+
+Any importable class will do, so a site can use its own without changing
+Pony Mail. The server refuses to start if the class can't be found, isn't
+an `AAAPlugin` or doesn't implement both `can_access_list` and
+`can_access_email`. Included:
+
+| Plugin | Access to private lists |
+|--------|-------------------------|
+| `plugins.aaa.AuthoritativeAAA` | For users of an authoritative OAuth provider (the default) |
+| `plugins.aaa_public.PublicAAA` | None for anyone, whatever their login, e.g. for a public mirror |
+
+```yaml
+aaa:
+  plugin: plugins.aaa_public.PublicAAA
+```
+
+See [plugins.md](plugins.md#access-control-plugins) for writing one.
+
+---
+
 ## `archiver`
 
 Controls threading behavior when archiving new emails. These settings
