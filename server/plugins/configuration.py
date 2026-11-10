@@ -105,7 +105,7 @@ class AAAConfig:
 
     def __init__(self, subyaml: dict):
         # Dotted path of the access control class (a plugins.aaa_plugin.AAAPlugin), checked at startup.
-        # None: the functions in plugins/aaa.py
+        # None: plugins.aaa.AuthoritativeAAA
         plugin = subyaml.get("plugin")
         self.plugin = str(plugin) if plugin else None
 

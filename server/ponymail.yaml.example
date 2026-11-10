@@ -80,6 +80,6 @@ oauth:
 #  max_per_user: 10   # most live tokens one user may hold at once
 
 # Access control: the class (a plugins.aaa_plugin.AAAPlugin) deciding who may read private lists.
-# Default: the functions in plugins/aaa.py. plugins.aaa_public.PublicAAA: no private lists for anyone
+# Default: plugins.aaa.AuthoritativeAAA. plugins.aaa_public.PublicAAA: no private lists for anyone
 #aaa:
 #  plugin: plugins.aaa_public.PublicAAA

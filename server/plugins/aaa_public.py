@@ -15,11 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 """
 Alternative access control for Pony Mail Foal, selected with
 `aaa: plugin: plugins.aaa_public.PublicAAA` in ponymail.yaml.
 No one can access private lists, whatever their login, e.g. for a public mirror of an archive.
-It is also the smallest example of an access control plugin: only can_access_list is required.
+It is also the smallest example of an access control plugin (see plugins/aaa_plugin.py).
 """
 
 import typing
@@ -31,5 +32,8 @@ import plugins.session
 class PublicAAA(plugins.aaa_plugin.AAAPlugin):
     """Private lists are readable by no one"""
 
-    def can_access_list(self, session: plugins.session.SessionObject, listid: typing.Optional[str]) -> bool:
+    def can_access_email(self, session: plugins.session.SessionObject, email: dict) -> bool:
+        return not email.get("private", True)  # Assume private if the flag is missing
+
+    def can_access_list(self, session: plugins.session.SessionObject, _listid: typing.Optional[str]) -> bool:
         return False

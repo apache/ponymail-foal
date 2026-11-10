@@ -213,14 +213,16 @@ Selects the access control (AAA) plugin the server uses, at startup.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `plugin` | string | none | Dotted path of the access control class, a subclass of `plugins.aaa_plugin.AAAPlugin`. Without it, the functions in `plugins/aaa.py` are used: private lists are readable by users of an authoritative OAuth provider |
+| `plugin` | string | `plugins.aaa.AuthoritativeAAA` | Dotted path of the access control class, a subclass of `plugins.aaa_plugin.AAAPlugin` |
 
 Any importable class will do, so a site can use its own without changing
 Pony Mail. The server refuses to start if the class can't be found, isn't
-an `AAAPlugin` or doesn't implement `can_access_list`. Included:
+an `AAAPlugin` or doesn't implement both `can_access_list` and
+`can_access_email`. Included:
 
 | Plugin | Access to private lists |
 |--------|-------------------------|
+| `plugins.aaa.AuthoritativeAAA` | For users of an authoritative OAuth provider (the default) |
 | `plugins.aaa_public.PublicAAA` | None for anyone, whatever their login, e.g. for a public mirror |
 
 ```yaml

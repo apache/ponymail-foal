@@ -15,27 +15,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 """
 Access control (AAA) plugins for Pony Mail Foal.
 
 An access control plugin is a subclass of AAAPlugin, selected by its dotted path with
 `aaa: plugin: <module>.<class>` in ponymail.yaml, e.g. plugins.aaa_public.PublicAAA.
-The server creates one instance at startup, as server.aaa, which endpoints and plugins
-ask whether the current session may read a list or an email.
-
-Without aaa.plugin the server uses the functions in plugins/aaa.py, so that a site's
-own version of that file keeps working.
+The default is plugins.aaa.AuthoritativeAAA. The server creates one instance at startup,
+as server.aaa, which endpoints and plugins ask whether the current session may read a list
+or an email. A plugin must implement both methods itself.
 """
 
 import abc
 import importlib
-import types
 import typing
 
 import plugins.server
 import plugins.session
 
-DEFAULT_MODULE = "plugins.aaa"
+DEFAULT_PLUGIN = "plugins.aaa.AuthoritativeAAA"
 
 
 class AAAPlugin(abc.ABC):
@@ -47,38 +45,17 @@ class AAAPlugin(abc.ABC):
         self.server = server
 
     @abc.abstractmethod
-    def can_access_list(self, session: plugins.session.SessionObject, listid: typing.Optional[str]) -> bool:
-        """Determine if a private list can be accessed by the current user"""
-
     def can_access_email(self, session: plugins.session.SessionObject, email: dict) -> bool:
         """Determine if an email can be accessed by the current user"""
-        # If public email, it can always be accessed
-        if not email.get("private", True):  # Assume private if the flag is missing
-            return True
-        # If user can access the list, they can read the email
-        return self.can_access_list(session, email.get("list_raw", None))
 
-
-class ModuleAAA(AAAPlugin):
-    """Access control by the can_access_list and can_access_email functions of a module, like plugins/aaa.py"""
-
-    module: types.ModuleType
-
-    def __init__(self, server: plugins.server.BaseServer, module: types.ModuleType):
-        super().__init__(server)
-        self.module = module
-
+    @abc.abstractmethod
     def can_access_list(self, session: plugins.session.SessionObject, listid: typing.Optional[str]) -> bool:
-        return self.module.can_access_list(session, listid)
-
-    def can_access_email(self, session: plugins.session.SessionObject, email: dict) -> bool:
-        return self.module.can_access_email(session, email)
+        """Determine if a private list can be accessed by the current user"""
 
 
 def load(server: plugins.server.BaseServer, plugin: typing.Optional[str]) -> AAAPlugin:
     """Create the access control plugin named by aaa.plugin, raising ValueError if it is not a usable AAAPlugin"""
-    if not plugin:
-        return ModuleAAA(server, importlib.import_module(DEFAULT_MODULE))
+    plugin = plugin or DEFAULT_PLUGIN
     module_name, _, class_name = plugin.rpartition(".")
     try:
         cls = getattr(importlib.import_module(module_name), class_name)

@@ -55,12 +55,25 @@ def load(plugin):
 class OnlyDev(plugins.aaa_plugin.AAAPlugin):
     """Test plugin: anyone may read the dev list"""
 
+    def can_access_email(self, session, email):
+        return not email.get("private", True) or self.can_access_list(session, email.get("list_raw"))
+
     def can_access_list(self, session, listid):
         return listid in ("dev@example.org", "<dev.example.org>")
 
 
-class Incomplete(plugins.aaa_plugin.AAAPlugin):
+class NoListCheck(plugins.aaa_plugin.AAAPlugin):
     """Test plugin that forgot can_access_list"""
+
+    def can_access_email(self, session, email):
+        return True
+
+
+class NoEmailCheck(plugins.aaa_plugin.AAAPlugin):
+    """Test plugin that forgot can_access_email"""
+
+    def can_access_list(self, session, listid):
+        return True
 
 
 class NotAPlugin:
@@ -68,11 +81,12 @@ class NotAPlugin:
         return True
 
 
-def test_default_is_plugins_aaa():
+def test_default():
     assert plugins.configuration.Configuration({}).aaa.plugin is None
     assert plugins.configuration.Configuration({"aaa": None}).aaa.plugin is None
     aaa = load(None)
-    assert isinstance(aaa, plugins.aaa_plugin.ModuleAAA) and aaa.module is plugins.aaa
+    assert type(aaa) is plugins.aaa.AuthoritativeAAA and aaa.server is SERVER
+    assert type(load("plugins.aaa.AuthoritativeAAA")) is plugins.aaa.AuthoritativeAAA
     assert aaa.can_access_list(AUTHORITATIVE, "secret@example.org")
     assert aaa.can_access_email(AUTHORITATIVE, PRIVATE_EMAIL)
     for session in (ANONYMOUS, OAUTH):
@@ -84,6 +98,7 @@ def test_default_is_plugins_aaa():
 def test_public():
     aaa = load("plugins.aaa_public.PublicAAA")
     assert isinstance(aaa, plugins.aaa_public.PublicAAA) and aaa.server is SERVER
+    assert not isinstance(aaa, plugins.aaa.AuthoritativeAAA)  # A sibling, not a variant of the default
     for session in (ANONYMOUS, OAUTH, AUTHORITATIVE):
         assert not aaa.can_access_list(session, "secret@example.org")
         assert not aaa.can_access_email(session, PRIVATE_EMAIL)
@@ -104,10 +119,12 @@ def test_any_importable_plugin():
         ("plugins.aaa_public.Nonexistent", "not found"),
         ("PublicAAA", "not found"),  # No module
         ("plugins.aaa", "is not a subclass"),  # A module, not a class
-        ("plugins.aaa.can_access_list", "is not a subclass"),
+        ("plugins.aaa_plugin.load", "is not a subclass"),  # A function
         (f"{__name__}.NotAPlugin", "is not a subclass"),
-        ("plugins.aaa_plugin.AAAPlugin", "does not implement can_access_list"),
-        (f"{__name__}.Incomplete", "does not implement can_access_list"),
+        ("plugins.aaa_plugin.AAAPlugin", "does not implement can_access_email, can_access_list"),
+        (f"{__name__}.NoListCheck", "does not implement can_access_list"),
+        (f"{__name__}.NoEmailCheck", "does not implement can_access_email"),
+        ("plugins.aaa.AAAPlugin", "not found"),  # The base class lives in plugins.aaa_plugin
     ],
 )
 def test_unusable_plugin(plugin, error):
