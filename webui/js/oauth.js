@@ -53,6 +53,11 @@ function GetAsync(theUrl, xstate, callback) {
     }
 }
 
+// constant callback URL for standard providers (no state, no hash)
+function oauthRedirectURI(key) {
+    return location.origin + location.pathname + "?key=" + key
+}
+
 // redirect to the oauth provider
 function oauthPortal(key) {
     let ot = G_oauth[key]
@@ -70,9 +75,15 @@ function oauthPortal(key) {
                 cid += "&" + k + "=" + encodeURIComponent(ot[k])
             }
         }
-        location.href = ot.oauth_portal + 
-            "?state=" + state + 
-            "&redirect_uri=" + encodeURIComponent(window.location + "?key=" + key + "&state=" + state) + 
+        // Standard providers match redirect_uri exactly and echo state themselves;
+        // others get the state folded into the redirect_uri, as the ASF OAuth flow
+        // used by lists.apache.org expects (preserved unchanged).
+        let redirect_uri = ot.standard ?
+            oauthRedirectURI(key) :
+            window.location + "?key=" + key + "&state=" + state
+        location.href = ot.oauth_portal +
+            "?state=" + state +
+            "&redirect_uri=" + encodeURIComponent(redirect_uri) +
             cid
     }
 }
@@ -154,6 +165,10 @@ function oauthWelcome(args) {
         }
         if (key && key.length > 0 && G_oauth[key]) {
             document.getElementById('oauthtypes').innerHTML = "Logging you in, hang on..!"
+            // The token exchange must repeat the exact redirect_uri
+            if (G_oauth[key].standard) {
+                args += "&redirect_uri=" + encodeURIComponent(oauthRedirectURI(key))
+            }
             GetAsync(G_apiURL + "api/oauth.lua?" + args, {}, parseOauthResponse)
         } else {
             alert("Key missing or invalid! " + key)
