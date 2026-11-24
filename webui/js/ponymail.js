@@ -3738,6 +3738,18 @@ function get_rcpts(addresses) {
     return list_of_emails;
 }
 
+function display_toast(message){
+        let toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        setTimeout(function(){ toast.style.display = 'none'; }, 5000);    
+}
+
+function copy_permalink(url){
+    navigator.clipboard.writeText(new URL(url, window.location.href));
+    display_toast('Copied to clipboard');
+}
+
 async function render_email(state, json) {
     let div = state.div;
     G_full_emails[json.mid] = json; // Save for composer if replying later...
@@ -3898,16 +3910,27 @@ async function render_email(state, json) {
     }, ' '));
     toolbar.inject(replybutton);
 
-    // permalink button
+    let linkurl = '/thread/%s'.format(json.mid);
+    // open permalink button
     let linkbutton = new HTML('a', {
-        href: 'thread/%s'.format(json.mid),
+        href: linkurl,
         target: '_blank',
-        title: "Permanent link to this email",
+        title: "Open email in new tab",
+        class: 'btn toolbar_btn toolbar_button_link'
+    }, new HTML('span', {
+        class: 'glyphicon glyphicon-envelope'
+    }, ' '));
+    toolbar.inject(linkbutton);
+
+    // copy permalink button
+    let copybutton = new HTML('a', {
+        onclick: 'copy_permalink("%s");'.format(linkurl),
+        title: "Copy permanent link to this email",
         class: 'btn toolbar_btn toolbar_button_link'
     }, new HTML('span', {
         class: 'glyphicon glyphicon-link'
     }, ' '));
-    toolbar.inject(linkbutton);
+    toolbar.inject(copybutton);
 
     // Source-view button
     let sourcebutton = new HTML('a', {
