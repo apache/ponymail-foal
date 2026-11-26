@@ -44,6 +44,7 @@ class UIConfig:
     mgmt_enabled: bool
     focus_domain: str
     fully_delete: bool
+    mbox_rate_limit: int
 
     def __init__(self, subyaml: dict):
         self.wordcloud = bool(subyaml.get("wordcloud", False))
@@ -58,6 +59,9 @@ class UIConfig:
         self.fully_delete = bool(subyaml.get("allow_delete", False))  # Whether to enforce full expunging of deleted emails
         # Default to all lists, "*". Use "" for host. Wildcard subdomain globs also supported
         self.focus_domain = subyaml.get("focus_domain", "*")
+        # Max speed of each mbox archive download, configured in KiB/s (0 = unlimited). 
+        # Converted to bytes/s, defaults to 500 KiB/s.
+        self.mbox_rate_limit = int(subyaml.get("mbox_rate_limit", 500)) * 1024
 
 
 class OAuthConfig:

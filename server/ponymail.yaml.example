@@ -21,6 +21,7 @@ ui:
   traceback:       true
   mgmtconsole:     true # enable email admin
   true_gdpr:       true # fully delete emails instead of marking them deleted
+  mbox_rate_limit: 500  # max speed of each mbox archive download, in KiB/s (0 = unlimited)
 
 # Fill in OAuth data as needed
 oauth:
