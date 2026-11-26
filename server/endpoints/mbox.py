@@ -30,7 +30,7 @@ import email.utils as eutils
 import datetime
 
 # Start of any line but the first that would otherwise look like the start of a new message in mboxrd format
-# (">*From " followed by whitespace other than a line break)
+# (">*From" followed by whitespace other than a line break)
 MBOXRD_FROM_LINE_RE = re.compile(r"(?<=\n)(?=>*From[^\S\n])")
 MBOX_CHUNK_SIZE = 16 * 1024  # Bytes per write when sending, so throttled downloads flow smoothly
 MBOX_BURST_SIZE = 64 * 1024  # Bytes a throttled download may send in one go, e.g. at the start
