@@ -149,8 +149,8 @@ async def process(
     # Find the emails to send first (whole batches, until at least max_hits). Sending can take a long time when
     # throttled, so we don't keep a scroll open (it would expire) or hold on to a pooled database connection
     # meanwhile; each source is fetched with a connection borrowed just for that.
-    max_hits = session.database.config.max_hits
-    dbids = []
+    max_hits = session.database and session.database.config.max_hits or 0
+    dbids: list[str] = []
     async for emails in plugins.messages.query_batch(
         session,
         query_defuzzed,
